@@ -1,0 +1,1174 @@
+Tom lied.	Том солгал.
+Is it new?	Новая?
+Is it new?	Новый?
+Is it new?	Она новая?
+Is it you?	Это Вы?
+Is it you?	Это ты?
+It burned.	Он сгорел.
+It burned.	Она сгорела.
+It burned.	Оно сгорело.
+It failed.	Из этого ничего не вышло.
+It failed.	Ничего не вышло.
+It failed.	Ничего не получилось.
+It is new.	Это новая.
+It rained.	Шёл дождь.
+It stinks.	Это дурно пахнет.
+It worked.	Это сработало.
+It's 3:10.	Десять минут четвёртого.
+It's 3:10.	Сейчас десять минут четвёртого.
+It's 3:10.	Сейчас три десять.
+It's 3:10.	Сейчас три часа десять минут.
+It's 8:30.	Сейчас 8:30.
+It's 8:30.	Сейчас полдевятого.
+It's a TV.	Это телевидение.
+It's a TV.	Это телевизор.
+It's dark.	Темно.
+It's dead.	Он дохлый.
+It's dead.	Она дохлая.
+It's dead.	Оно мертво.
+I'm trying.	Я пытаюсь.
+Let's swim.	Давай поплаваем.
+We saw you.	Мы вас видели.
+You're sad.	Ты грустная.
+How strange!	Как странно!
+I adore Tom.	Я обожаю Тома.
+I saw a dog.	Я видел пса.
+I saw a dog.	Я видела собаку.
+I saw a dog.	Я увидел пса.
+I see a boy.	Я вижу мальчика.
+I sell cars.	Я продаю машины.
+I smell bad.	От меня плохо пахнет.
+I smell gas.	Я чувствую запах газа.
+I succeeded.	Мне удалось.
+I succeeded.	У меня получилось.
+I surrender.	Сдаюсь.
+I surrender.	Я сдаюсь.
+I talk fast.	Я быстро говорю.
+I thank you.	Благодарю тебя.
+I trust Tom.	Я доверяю Тому.
+I trust her.	Я ей доверяю.
+I trust him.	Я ему доверяю.
+I trust you.	Я Вам доверяю.
+I trust you.	Я вам доверяю.
+I trust you.	Я тебе доверяю.
+I want Mary.	Я хочу Мэри.
+I want cash.	Мне нужны наличные.
+I want cash.	Хочу наличные.
+I want eggs.	Я хочу яйца.
+I want kids.	Я хочу детей.
+I want mine.	Я хочу свой.
+I want more.	Я хочу ещё.
+I want soup.	Я хочу супа.
+I want them.	Я их хочу.
+I want them.	Я хочу их.
+Please stay.	Останьтесь, пожалуйста.
+Tom is busy.	Том занят.
+We help Tom.	Мы помогаем Тому.
+We're young.	Мы молодые.
+Who cheated?	Кто жульничал?
+I like women.	Мне нравятся женщины.
+I like women.	Я люблю женщин.
+I live alone.	Я живу один.
+I live alone.	Я живу одна.
+I lost a bet.	Я проиграл пари.
+I love books.	Я люблю книги.
+I love bread.	Я люблю хлеб.
+I love chili.	Я люблю горький перец.
+I love chili.	Я люблю перец чили.
+I want a job.	Я хочу работу.
+I want a lot.	Мне надо много.
+I want facts.	Мне нужны факты.
+I want money.	Я хочу денег.
+I want money.	Я хочу деньги.
+I want these.	Я хочу эти.
+I want to go.	Я хочу уйти.
+I'll ask him.	Я спрошу его.
+I'll ask him.	Я у него попрошу.
+I'll ask him.	Я у него спрошу.
+I'll be next.	Я буду следующей.
+I'm decisive.	Я решительная.
+I'm diabetic.	У меня диабет.
+I'm diligent.	Я старательный.
+I'm discreet.	Я осмотрительная.
+I'm discreet.	Я осмотрительный.
+I'm divorced.	Я в разводе.
+I'm divorced.	Я разведен.
+I'm divorced.	Я разведена.
+I'm divorced.	Я разведён.
+I'm doing OK.	У меня всё хорошо.
+I'm done for.	Мне крышка.
+I'm done for.	Я пропал.
+I'm doubtful.	Я сомневаюсь.
+I'm drowning.	Я тону.
+I'm dyslexic.	У меня дислексия.
+I'm educated.	Я образован.
+I'm educated.	Я образована.
+I'm eighteen.	Мне восемнадцать лет.
+I'm eighteen.	Мне восемнадцать.
+I'm escaping.	Я сбегаю.
+I'm escaping.	Я убегаю.
+I'm expected.	Меня ждут.
+I'm faithful.	Я верная.
+I'm faithful.	Я верный.
+I'm famished.	Умираю есть хочу.
+I'm famished.	Я изголодалась.
+I'm famished.	Я изголодался.
+I'm famished.	Я умираю от голода.
+I'm fearless.	Я бесстрашен.
+I'm fearless.	Я бесстрашная.
+I'm fearless.	Я бесстрашный.
+I'm innocent.	Я невинна.
+I'm too thin.	Я слишком худа.
+I'm too thin.	Я слишком худая.
+I'm too thin.	Я слишком худой.
+I'm too weak.	Я слишком слаб.
+I'm too weak.	Я слишком слаба.
+I'm troubled.	Я встревожен.
+I'm troubled.	Я встревожена.
+I'm truthful.	Я правдивая.
+I'm truthful.	Я правдивый.
+I'm unafraid.	Я бесстрашная.
+I'm unbiased.	Я беспристрастен.
+I'm upstairs.	Я наверху.
+I'm very fat.	Я очень толстая.
+I'm very fat.	Я очень толстый.
+I'm very hot.	Мне очень жарко.
+I'm very sad.	Мне очень грустно.
+I'm very shy.	Я очень застенчивая.
+I'm very shy.	Я очень застенчивый.
+I'm very shy.	Я очень робкая.
+I'm very shy.	Я очень робкий.
+I'm very shy.	Я очень стеснительная.
+I'm very shy.	Я очень стеснительный.
+I'm watching.	Я наблюдаю.
+I'm watching.	Я слежу.
+I'm well off.	Я состоятельный.
+I've decided.	Я сделал выбор.
+It was crazy.	Это было безумием.
+It was cruel.	Это было жестоко.
+It was empty.	В ней было пусто.
+It was empty.	В нём было пусто.
+It was empty.	Он был пуст.
+It was empty.	Он был пустой.
+It was empty.	Она была пуста.
+It was empty.	Она была пустая.
+It was empty.	Оно было пустое.
+It was night.	Была ночь.
+It was noisy.	Было шумно.
+It was pizza.	Это была пицца.
+It was quiet.	Было тихо.
+It was quiet.	Он был тихим.
+It was quiet.	Она была тихой.
+It was quiet.	Оно было тихим.
+It was risky.	Это было рискованно.
+It was scary.	Это было пугающе.
+It was vague.	Он был размыт.
+It was vague.	Она была размыта.
+It was vague.	Оно было размыто.
+It was vague.	Это было размыто.
+It was weird.	Это было странно.
+It was white.	Он был белый.
+It was white.	Она была белая.
+It was white.	Оно было белое.
+It was wrong.	Это было неправильно.
+It wasn't me.	Это был не я.
+It wasn't me.	Это была не я.
+It wasn't us.	Это были не мы.
+It went well.	Всё прошло хорошо.
+It will burn.	Он сгорит.
+It will burn.	Она сгорит.
+It will burn.	Оно сгорит.
+It will work.	Это сработает.
+It works now.	Сейчас это работает.
+It works now.	Теперь всё работает.
+It works now.	Теперь он работает.
+It works now.	Теперь она работает.
+It works now.	Теперь оно работает.
+It'll be hot.	Будет жарко.
+They crashed.	Они разбились.
+They know us.	Они нас знают.
+They love us.	Они любят нас.
+They love us.	Они нас любят.
+They need me.	Они нуждаются во мне.
+They need me.	Я им нужен.
+They refused.	Они отказались.
+They relaxed.	Они расслабились.
+They said no.	Они сказали нет.
+They saw Tom.	Они видели Тома.
+They saw you.	Они вас видели.
+They saw you.	Они видели вас.
+They saw you.	Они видели тебя.
+They saw you.	Они тебя видели.
+They shot me.	Они в меня стреляли.
+They stopped.	Они остановились.
+They went in.	Они пошли внутрь.
+They'll call.	Они позвонят.
+They'll come.	Они придут.
+They'll fail.	У них ничего не выйдет.
+They'll fail.	У них ничего не получится.
+They'll grow.	Они вырастут.
+They'll know.	Они узнают.
+They'll wait.	Они будут ждать.
+They'll wait.	Они подождут.
+They're back.	Они вернулись.
+They're blue.	Они голубые.
+They're boys.	Они мальчики.
+They're boys.	Они мальчишки.
+They're busy.	Они заняты.
+They're cold.	Им холодно.
+They're cold.	Они холодные.
+They're late.	Они опоздали.
+Can I do that?	Я могу это сделать?
+He has braces.	Он носит брекеты.
+He is out now.	Его сейчас нет.
+He is reading.	Он читает.
+He is skating.	Он катается на коньках.
+He is too old.	Он слишком стар.
+He is too old.	Он слишком старый.
+He isn't home.	Его нет дома.
+He killed him.	Он его убил.
+He killed him.	Он прикончил его.
+He killed him.	Он убил его.
+He kissed her.	Он её поцеловал.
+He let Tom go.	Он отпустил Тома.
+He let Tom go.	Он разрешил Тому идти.
+He lied to me.	Он лгал мне.
+He lied to me.	Он мне соврал.
+He lied to me.	Он мне солгал.
+He lied to us.	Он нам наврал.
+He lied to us.	Он нам соврал.
+He lied to us.	Он солгал нам.
+He liked that.	Ему это понравилось.
+He looks pale.	Он выглядит бледным.
+He looks pale.	У него бледный вид.
+He looks well.	Он выглядит нормально.
+He looks well.	Он выглядит хорошо.
+He lost color.	Он потерял цвет.
+He loves them.	Он их любит.
+He loves them.	Он любит их.
+He loves toys.	Он обожает игрушки.
+He made me go.	Он заставил меня поехать.
+He made me go.	Он заставил меня пойти.
+He made me go.	Он заставил меня уйти.
+He needs help.	Ему нужна помощь.
+He never lies.	Он никогда не говорит неправду.
+He pinched me!	Он меня ущипнул!
+He seems kind.	Он вроде добрый.
+He seems kind.	Он выглядит добрым.
+He seems kind.	Он кажется добрым.
+He sells cars.	Он занимается продажей автомобилей.
+He sells cars.	Он занимается продажей машин.
+He sells cars.	Он продаёт автомобили.
+He sells cars.	Он продаёт машины.
+He sells cars.	Он торгует автомобилями.
+He sells cars.	Он торгует машинами.
+He shot at me.	Он выстрелил в меня.
+I'm ambitious.	Я честолюбивая.
+I'm an addict.	У меня зависимость.
+I'm an addict.	Я зависимый.
+I'm an addict.	Я наркоман.
+I'm an artist.	Я художник.
+I'm an orphan.	Я сирота.
+I'm attentive.	Я внимателен.
+I'm attentive.	Я внимательна.
+I'm attentive.	Я внимательная.
+I'm attentive.	Я внимательный.
+I'm attentive.	Я заботливая.
+I'm attentive.	Я заботливый.
+I'm available.	Я доступен.
+I'm available.	Я доступна.
+I'm awake now.	Сейчас я бодрствую.
+I'm awake now.	Сейчас я не сплю.
+I'm beautiful.	Я красивая.
+I'm bilingual.	Я говорю на двух языках.
+I'm bilingual.	Я двуязычная.
+I'm bilingual.	Я двуязычный.
+I'm bilingual.	Я знаю два языка.
+I'm busy here.	Я здесь занят.
+I'm busy here.	Я здесь занята.
+I'm busy, Tom.	Я занят, Том.
+I'm busy, Tom.	Я занята, Том.
+I'm busy, too.	Я тоже занят.
+I'm busy, too.	Я тоже занята.
+I'm by myself.	Я сам по себе.
+I'm committed.	Я в деле.
+I'm committed.	Я идейная.
+I'm committed.	Я идейный.
+I'm committed.	Я преданная.
+I'm committed.	Я преданный.
+I'm committed.	Я привержен.
+I'm committed.	Я привержена.
+I'm concerned.	Я заинтересована.
+I'm concerned.	Я озабочен.
+I'm concerned.	Я озабочена.
+I'm confident.	Я самоуверен.
+I'm confident.	Я самоуверенна.
+I'm contented.	Я удовлетворена.
+I'm contented.	Я удовлетворён.
+I'm contented.	Я удовлетворённая.
+I'm contented.	Я удовлетворённый.
+I'm convinced.	Я убежден.
+I'm convinced.	Я убеждена.
+I'm dedicated.	Я преданная.
+I'm dedicated.	Я преданный.
+I'm in Boston.	Я в Бостоне.
+I'm plastered.	Я в стельку.
+I'm powerless.	Я бессилен.
+I'm powerless.	Я бессильна.
+I'm ready now.	Теперь я готова.
+I'm realistic.	Я реалист.
+I'm resentful.	Я возмущён.
+I'm resigning.	Я ухожу в отставку.
+I'm resilient.	Я стойкий.
+I'm safe here.	Здесь я в безопасности.
+I'm safe here.	Тут я в безопасности.
+I'm satisfied.	Я доволен.
+I'm saving it.	Я это берегу.
+I'm saving it.	Я это приберегу.
+I'm saying no.	Я говорю нет.
+I'm screaming.	Я кричу.
+I'm sensitive.	Я чувствительный.
+I've got mine.	У меня свои есть.
+I've got mine.	У меня свои.
+I've got mine.	У меня своя есть.
+I've got mine.	У меня своя.
+I've got mine.	У меня своё есть.
+I've got mine.	У меня своё.
+I've got news.	У меня есть новости.
+I've got time.	У меня есть время.
+I've got wine.	У меня есть вино.
+I've returned.	Я вернулся.
+I've seen Tom.	Я видел Тома.
+I've seen Tom.	Я видела Тома.
+Is Tom afraid?	Том боится?
+Is Tom afraid?	Тому страшно?
+Is Tom around?	Том рядом?
+Is Tom asleep?	Том уснул?
+Is Tom better?	Тому лучше?
+Is Tom coming?	Том придёт?
+Is Tom eating?	Том ест?
+It is the law.	Это закон.
+Just find Tom.	Просто найди Тома.
+Lock the door.	Заприте дверь.
+They're right.	Они правы.
+Tom told Mary.	Том сказал Мэри.
+Wake the kids.	Буди детей.
+Wake the kids.	Будите детей.
+Wake the kids.	Разбуди детей.
+Wake the kids.	Разбудите детей.
+Was I snoring?	Я храпел?
+Was Tom alone?	Том был один?
+Was Tom angry?	Том злился?
+Watch TV here.	Смотрите телевизор здесь.
+You dozed off.	Ты задремал.
+You look well.	Ты хорошо выглядишь.
+I kept digging.	Я продолжал копать.
+I'm not hungry.	Я есть не хочу.
+This is doable.	Это можно сделать.
+Tom looks sick.	Том выглядит больным.
+Check your list.	Проверьте свой список.
+Don't apologize.	Не извиняйтесь.
+He's dead-tired.	Он до смерти устал.
+I rang the bell.	Я позвонил в колокольчик.
+I slept an hour.	Я проспал час.
+I wish you luck.	Желаю вам удачи.
+I'm not married.	Я не женат.
+It was terrific.	Это было потрясающе.
+It's never safe.	Это всегда небезопасно.
+It's not my day.	Не мой сегодня день.
+Just ignore him.	Не обращайте на него внимание.
+Let them decide.	Пусть они решают.
+Now you're safe.	Теперь вы в безопасности.
+She looks tired.	Она выглядит уставшей.
+Tom followed me.	Том пошёл за мной.
+Tom was nervous.	Том нервничал.
+What's with Tom?	Что с Томом?
+Who fired first?	Кто начал стрельбу?
+You're bluffing.	Вы блефуете.
+Am I really sick?	Я правда больна?
+Did Tom push you?	Том тебя толкнул?
+Did you warn Tom?	Вы предупредили Тома?
+Go there with me.	Иди туда со мной.
+He made me smile.	Он вызвал у меня улыбку.
+He works Sundays.	Он работает по воскресеньям.
+I don't know yet.	Пока не знаю.
+I have Tom's key.	Ключи Тома у меня.
+I totally forgot.	Я абсолютно забыл.
+I'm not drinking.	Я не пью.
+Is Tom your name?	Тебя Томом зовут?
+Is it really you?	Это правда ты?
+It cost too much.	Оно слишком дорого стоило.
+Listen to me, OK?	Послушайте меня, хорошо?
+That book's mine.	Та книга моя.
+The radio was on.	Радио было включено.
+Time is valuable.	Время стоит дорого.
+Tom avoided Mary.	Том избегал Мэри.
+Tom became angry.	Том разозлился.
+Who did Tom tell?	Кому Том сказал?
+Who's not coming?	Кто не пойдёт?
+You agreed to it.	Ты с этим согласился.
+You helped Mommy?	Ты помог маме?
+Can people change?	Люди могут меняться?
+Can't you find it?	Вы не можете её найти?
+I can't afford it.	Мне это не по карману.
+I have a daughter.	У меня есть дочь.
+I'm quite serious.	Я вполне серьёзно.
+Let's change that.	Давайте это изменим.
+The cage is empty.	Клетка пуста.
+They're both dead.	Они оба умерли.
+This book is mine.	Эта книга моя.
+Tom was a teacher.	Том был учителем.
+Tom's car is blue.	Машина Тома - синяя.
+You should try it.	Тебе стоит попробовать это.
+You're bugging me.	Ты меня раздражаешь.
+Could you call Tom?	Ты не могла бы позвонить Тому?
+Don't touch my bag.	Не трогай мою сумку.
+Follow your dreams.	Следуй за мечтой.
+He has his own car.	У него своя машина.
+How will I find it?	Как я её найду?
+I can't read music.	Я не знаю нотной грамоты.
+I don't fear death.	Я не боюсь смерти.
+I have to fire Tom.	Я должен уволить Тома.
+I have to paint it.	Мне надо его покрасить.
+I hope Tom resigns.	Надеюсь, Том уйдёт в отставку.
+I may be back soon.	Я, возможно, скоро вернусь.
+I was close to Tom.	Мы с Томом были близки.
+I was very pleased.	Я был очень доволен.
+I won't forget you.	Я не забуду тебя.
+I'm a third grader.	Я третьеклассник.
+I'm always careful.	Я всегда осторожен.
+I'm not your slave.	Я тебе не раб.
+I'm terribly sorry.	Мне ужасно жаль.
+It's him, isn't it?	Это ведь он?
+My dad just called.	Только что звонил отец.
+She's an alcoholic.	Она — алкоголик.
+This isn't Spanish.	Это не испанский.
+Tom could help you.	Том мог бы помочь тебе.
+Tom swam yesterday.	Том вчера плавал.
+Tom was dumbstruck.	Фома лишился дара речи.
+Tom will never win.	Том никогда не победит.
+Whose beer is this?	Чьё это пиво?
+Why are you so sad?	Ты почему такая грустная?
+You drank too much.	Вы слишком много выпили.
+You're trustworthy.	Ты надёжный.
+Don't let Tom sleep.	Не давай Тому спать.
+He loves ceremonies.	Он любит церемонии.
+How did Tom take it?	Как Том это воспринял?
+I am the chosen one.	Я избранный.
+I can be reasonable.	Я могу быть рассудительным.
+I hid in the closet.	Я спрятался в шкафу.
+I really doubt that.	Сильно в этом сомневаюсь.
+I think you like me.	По-моему, я тебе нравлюсь.
+I want to stay here.	Я хочу остаться здесь.
+Is that one of ours?	Это один из наших?
+It got on my nerves.	Это действовало мне на нервы.
+She rarely goes out.	Она редко выходит из дому.
+She's an only child.	Она единственный ребёнок.
+Tom collects stamps.	Том собирает марки.
+Tom is in the house.	Том в доме.
+Tom refuses to talk.	Том отказывается разговаривать.
+We have to call Tom.	Мы должны позвать Тома.
+We'll never give up.	Мы никогда не сдадимся.
+Who do you work for?	На кого ты работаешь?
+You can borrow mine.	Можешь одолжить мои.
+You see what I mean?	Понимаете, о чём я?
+You were very brave.	Ты был очень храбрым.
+Are we starting soon?	Мы скоро начнём?
+Can you imagine that?	Можешь себе это представить?
+He said it as a joke.	Он сказал это в шутку.
+Here are some idioms.	Вот несколько идиом.
+I didn't see anybody.	Я никого не увидела.
+I have a good memory.	У меня хорошая память.
+I married a Canadian.	Я женился на канадке.
+I waited for the bus.	Я ждал автобус.
+I'll call my husband.	Я позвоню своему мужу.
+I'm not your servant.	Я тебе не слуга.
+It's sort of strange.	Это как-то странно.
+Keep the door closed.	Держи дверь закрытой.
+Please write it down.	Запишите это, пожалуйста.
+The red house is new.	Красный дом новый.
+Tom never liked that.	Тому никогда это не нравилось.
+Tom's a very bad guy.	Том очень плохой парень.
+What would Tom think?	Что бы подумал Том?
+Why do you need that?	Зачем тебе это нужно?
+You're like children.	Вы как дети.
+You're never at home.	Тебя никогда нет дома.
+All I ate was bananas.	Я ничего, кроме бананов, не ел.
+Be polite to everyone.	Будь со всеми вежлив.
+Did you take a shower?	Вы принимали душ?
+Do you not like girls?	Тебе не нравятся девушки?
+He turned a blind eye.	Он закрывал на это глаза.
+I bought this for Tom.	Я купил это для Тома.
+I hope I can help you.	Я надеюсь, что смогу вам помочь.
+I know why you're sad.	Я знаю, почему ты грустный.
+I said I wasn't ready.	Я сказал, что не готов.
+I was hoping for more.	Я надеялся на большее.
+I won't be late again.	Я больше не буду опаздывать.
+I'm glad you like Tom.	Я рад, что тебе нравится Том.
+I'm playing a TV game.	Я играю в телевизионную игру.
+I'm too tired to swim.	Я слишком устала, чтобы плавать.
+It's all quite normal.	Это всё вполне нормально.
+No one is in the room.	В комнате никого нет.
+Please scale the fish.	Соскоблите чешую с рыбы.
+The door creaked open.	Дверь со скрипом отворилась.
+Tom can't help us now.	Том не может нам сейчас помочь.
+Tom hummed to himself.	Том напевал себе под нос.
+Tom is a gifted actor.	Том - талантливый актёр.
+Tom is wearing my cap.	Том в моей шапке.
+We no longer need you.	Вы нам больше не нужны.
+We tried to reach you.	Мы пытались с вами связаться.
+What did you discover?	Что ты обнаружил?
+Who do you think I am?	Ты за кого меня принимаешь?
+Who knows Tom is here?	Кто знает, что Том здесь?
+You have not seen him.	Вы не видели его.
+You're perfectly safe.	Вы в абсолютной безопасности.
+Did you want something?	Вы что-то хотели?
+Do both of you do that?	Вы обе этим занимаетесь?
+Don't worry about them.	Не беспокойся за них.
+Don't you like fishing?	Вы не любите рыбалку?
+Everything is possible.	Всё возможно.
+Hand me that oven mitt.	Передай мне ту прихватку.
+I came with my friends.	Я пришла с друзьями.
+I couldn't let Tom die.	Я не мог дать Тому умереть.
+I want to speak to you.	Я хочу с вами поговорить.
+I was a little nervous.	Я немного нервничал.
+I'll be back next week.	Я вернусь на той неделе.
+I'm a realistic person.	Я реалист.
+I've been robbed again.	Меня опять ограбили.
+It's all in the report.	Всё это есть в отчете.
+She gave him a sweater.	Она дала ему свитер.
+That's hard to believe.	Верится с трудом.
+The child cried loudly.	Ребёнок громко плакал.
+The engine won't start.	Двигатель не заводится.
+They don't belong here.	Они не местные.
+This coat fits me well.	Это пальто мне очень идёт.
+This joke is not funny.	Эта шутка не смешная.
+Tom hung his jacket up.	Том повесил пиджак.
+Tom knows he can't win.	Том знает, что не сможет выиграть.
+Tom looks worried, too.	Том тоже выглядит обеспокоенным.
+We have to make a plan.	Мы должны составить план.
+We want you to help us.	Мы хотим, чтобы вы нам помогли.
+What are you scared of?	Чем ты напуган?
+What's it called again?	Как там оно называется?
+Why isn't Tom sleeping?	Почему Том не спит?
+You can't come with us.	Вы не можете пойти с нами.
+You should talk to Tom.	Вам следует поговорить с Томом.
+You're not so horrible.	Вы не так ужасны.
+Aren't you angry at Tom?	Вы не злитесь на Тома?
+Ask Tom how he got here.	Спроси у Тома, как он сюда попал.
+Did you grade the tests?	Вы проверили контрольные?
+I admit I was surprised.	Я признаю, что был удивлён.
+I hope to see you again.	Надеюсь увидеться снова.
+I like studying history.	Люблю изучать историю.
+I'll show you something.	Я вам кое-что покажу.
+I'm just a little dizzy.	У меня просто немного кружится голова.
+I'm sorry I doubted you.	Прости, что сомневался в тебе.
+Is Tom really in Boston?	Том действительно в Бостоне?
+Is this water drinkable?	Эта вода питьевая?
+Let's find out for sure.	Давайте узнаем наверняка.
+Please answer in French.	Пожалуйста, ответь по-французски.
+She showed me her album.	Она показала мне свой альбом.
+She was in a silk dress.	На ней было шёлковое платье.
+That's all I had to say.	Это всё, что я хотел сказать.
+The sum of 5 and 3 is 8.	Сумма пяти и трёх равна восьми.
+Tom didn't buy a ticket.	Том не купил билет.
+Tom has plenty of money.	У Тома куча денег.
+Tom is teaching English.	Том преподаёт английский язык.
+Tom might become famous.	Том мог бы прославиться.
+Tom never listens to me.	Том никогда меня не слушает.
+Tom turned off the lamp.	Том выключил лампу.
+We have three days left.	У нас осталось три дня.
+We still don't know why.	Мы так и не знаем почему.
+Who is this letter from?	От кого это письмо?
+You can't do this to us.	Вы не можете так с нами поступить.
+Are you a morning person?	Вы жаворонок?
+Are you feeling OK today?	Ты хорошо себя сегодня чувствуешь?
+Can you do this yourself?	Вы можете это сами сделать?
+Do you really live alone?	Ты правда один живёшь?
+How often does Tom snore?	Как часто Том храпит?
+I know it's only a dream.	Я знаю, что это всего лишь мечта.
+I owe ten dollars to her.	Я должен ей десять долларов.
+I told you it was stupid.	Я говорил тебе, что это глупость.
+I was too drunk to drive.	Я был слишком пьян, чтобы садиться за руль.
+I would go if I were you.	На вашем месте я бы пошёл.
+I'm not a native speaker.	Я не носитель языка.
+I've never been to Tom's.	Я никогда не бывал у Тома дома.
+It's going to take hours.	Это займёт несколько часов.
+May I ask where you work?	Можно узнать, где вы работаете?
+Remember why you're here.	Помни, зачем ты здесь.
+She lives in the country.	Она живёт в сельской местности.
+She painted the wall red.	Она покрасила стену в красный цвет.
+This is the only way out.	Это единственный выход.
+Tom knew it would happen.	Том знал, что это случится.
+Tom looked in the mirror.	Том посмотрел в зеркало.
+We can't stay for dinner.	Мы не можем остаться на ужин.
+We have to work together.	Мы должны работать вместе.
+We hope that you do that.	Мы надеемся, что ты это сделаешь.
+We want to talk with you.	Мы хотим с тобой поговорить.
+We've done nothing wrong.	Мы не сделали ничего плохого.
+What format should I use?	Какой формат я должен использовать?
+Whatever happened to Tom?	Что произошло с Томом?
+Who did you think it was?	Ты думал, это кто?
+You cannot buy happiness.	Нельзя купить счастье.
+You did this, didn't you?	Ты сделала это, не так ли?
+You said I could see Tom.	Ты сказал, что мне можно повидаться с Томом.
+You should ask Tom first.	Тебе надо сначала спросить Тома.
+You're disobeying orders.	Ты не повинуешься приказам.
+You've been spying on me.	Ты шпионишь за мной.
+Did Tom ever threaten you?	Том когда-нибудь угрожал вам?
+Do you want to discuss it?	Ты хочешь это обсудить?
+Have you seen my car keys?	Ты не видел мои ключи от машины?
+He can also speak Russian.	Ещё он умеет говорить по-русски.
+He is shaking like a leaf.	Он дрожит как осиновый лист.
+How are they treating you?	Как они с вами обращаются?
+I didn't hear you come in.	Я не слышал, как Вы вошли.
+I knew you wouldn't leave.	Я знал, что ты не уйдёшь.
+I smell something burning.	Мне кажется, пахнет горелым.
+I think that's rat poison.	Кажется, это крысиный яд.
+I thought I saw something.	Мне показалось, я что-то видел.
+I wanted to tell you that.	Я хотел рассказать вам это.
+It's a very stressful job.	Это очень нервная работа.
+Thank you for buying food.	Спасибо, что купил еду.
+The soldier acted bravely.	Воин действовал смело.
+They got a warm reception.	Им был оказан тёплый приём.
+Tom has braided his beard.	Том заплёл свою бороду в косичку.
+Tom is extremely cautious.	Том крайне осторожен.
+Tom showed Mary the photo.	Том показал фотографию Мэри.
+Tom wanted to be the best.	Том хотел быть лучшим.
+We agree to your proposal.	Мы согласны с вашим предложением.
+Would you please stand up?	Будьте добры, встаньте, пожалуйста.
+You have to get rid of it.	Тебе надо от неё избавиться.
+You're going to be famous.	Ты будешь знаменит.
+Are you a religious person?	Ты религиозный человек?
+Come back here immediately!	Немедленно возвращайтесь сюда!
+He acquired French quickly.	Он быстро выучил французский.
+He's always looking at you.	Он постоянно на тебя смотрит.
+I agree with this proposal.	Я согласен с этим предложением.
+I can imagine how you felt.	Могу представить, как ты себя чувствовал.
+I can imagine how you felt.	Могу представить, что вы почувствовали.
+I don't live in Boston now.	Я сейчас в Бостоне не живу.
+I feel no sympathy for Tom.	Я не испытываю сочувствия к Тому.
+I found a nice tie for Tom.	Я нашёл хороший галстук для Тома.
+I need to charge my mobile.	Мне нужно зарядить сотовый.
+I still can't tell you why.	Я пока не могу сказать тебе почему.
+I thought Tom had got lost.	Я думал, что Том пропал.
+I want to buy a new camera.	Я хочу купить новый фотоаппарат.
+I'd like to change my room.	Я хотел бы переехать в другой номер.
+I'll never forget that day.	Я никогда не забуду тот день.
+It's just your imagination.	Это всего лишь твоё воображение.
+Let me sing a song for you.	Давай я спою тебе песню.
+Let's go by taxi, shall we?	Давайте возьмём такси, хорошо?
+Most cars have clear glass.	У большинства машин чистые стекла.
+Poets like Milton are rare.	Такие поэты, как Милтон, редки.
+She persuaded him to do it.	Она убедила его сделать это.
+She saw him at the station.	Она видела его на станции.
+She wished to be beautiful.	Ей хотелось бы быть красивой.
+There's a fan on the table.	На столе лежит веер.
+They won't let you in, Tom.	Они не впустят тебя, Том.
+Tom climbed out the window.	Том вылез в окно.
+Tom has decided to give up.	Том решил сдаться.
+Tom hasn't yet been warned.	Тома ещё не предупредили.
+Tom invited Mary to Boston.	Том пригласил Мэри в Бостон.
+Tom quit his job yesterday.	Том вчера бросил работу.
+Tom said I could come over.	Том сказал, я могу зайти.
+Tom wasn't a very good man.	Том был не очень хорошим человеком.
+We had a good conversation.	У нас состоялся хороший разговор.
+We hope you find it useful.	Мы надеемся, что вам это пригодится.
+Yesterday he saw a big man.	Вчера он увидел высокого мужчину.
+You can't open it, can you?	Вы что, не можете её открыть?
+You need to get a real job.	Тебе нужно получить нормальную работу.
+You obviously want to help.	Вы явно хотите помочь.
+Are you ready for Halloween?	Вы готовы к Хэллоину?
+At last he reached his goal.	Наконец он достиг своей цели.
+Could you solve the problem?	Ты не мог бы решить этот вопрос?
+Do you want to play with us?	Хотите поиграть с нами?
+Have you ever broken a bone?	Вы себе когда-нибудь что-нибудь ломали?
+How big of an idiot are you?	Насколько же ты идиот?
+How many pens does she have?	Сколько у неё ручек?
+How much are eggs per dozen?	Почём дюжина яиц?
+I bought the girl a sweater.	Я купил девочке свитер.
+I definitely heard a scream.	Я определённо слышал крик.
+I hadn't thought about that.	Об этом я не подумал.
+I thought you understood me.	Я думала, что ты поняла меня.
+I was bitterly disappointed.	Я был горько разочарован.
+It looks like my job's done.	Похоже, моя работа выполнена.
+Please call before you come.	Пожалуйста, позвоните, перед тем как прийти.
+That is where you are wrong.	Тут-то вы и ошибаетесь.
+The library is to the right.	Библиотека находится справа.
+The road's in bad condition.	Дорога в плохом состоянии.
+Tom and Mary became friends.	Том и Мэри стали друзьями.
+Tom is swimming in the pool.	Том плавает в бассейне.
+Tom isn't used to city life.	Том не привык к городской жизни.
+Tom says he saw Mary crying.	Том говорит, что видел, как Мэри плачет.
+What are you babbling about?	О чём ты бормочешь?
+Who knows what might happen?	Кто знает, что могло случиться?
+You can come if you want to.	Можете прийти, если хотите.
+You're too young to do that.	Вам рано этим заниматься.
+Are you sure you can do this?	Ты уверена, что сможешь это сделать?
+Can I buy you dinner tonight?	Можно угостить тебя сегодня ужином?
+Do you have a school uniform?	У тебя есть школьная форма?
+He is an expert in astronomy.	Он является экспертом в области астрономии.
+His plan was put into action.	Его план был приведён в действие.
+I asked Tom to wait a moment.	Я попросил Тома подождать минутку.
+I didn't go to Tom's funeral.	Я не пошёл на похороны Тома.
+I really want to talk to you.	Я очень хочу с тобой поговорить.
+I was sure I heard something.	Я был уверен, что что-то слышал.
+I'm not sure I can trust you.	Я не уверен, что могу тебе доверять.
+I'm teaching at a university.	Я преподаю в университете.
+It seems it'll rain tomorrow.	Кажется, завтра будет дождь.
+May I borrow your dictionary?	Можно позаимствовать твой словарь?
+Pain shot through his finger.	Боль пронзила его палец.
+She patiently waited for him.	Она терпеливо его ждала.
+Someone caught me by the arm.	Кто-то схватил меня за руку.
+That's none of your business.	Это не твоё дело.
+The cat was licking its paws.	Кошка лизала свои лапы.
+There's a spot on your shirt.	У Вас на рубашке пятно.
+Tom didn't have a girlfriend.	У Тома не было девушки.
+Tom gave Mary plenty of time.	Том дал Мэри много времени.
+Tom has known Mary for years.	Том знает Мэри уже много лет.
+Tom hasn't been helping Mary.	Том не помогает Мэри.
+Tom hired a very good lawyer.	Том нанял очень хорошего адвоката.
+Tom is an excellent marksman.	Том — отличный стрелок.
+What are you going to do now?	Что ты собираешься сейчас делать?
+What's that disgusting smell?	Чем это так воняет?
+Why don't you do it yourself?	Почему бы Вам самому это не сделать?
+Will you go shopping with me?	Пойдёшь со мной за покупками?
+You know what I want to hear.	Ты знаешь, что я хочу услышать.
+Do you know whose car this is?	Вы знаете, чья это машина?
+Everybody expected Tom to win.	Все ожидали, что Том победит.
+Fill in your name and address.	Впиши своё имя и адрес.
+He was walking toward the sea.	Он шагал к морю.
+I am happy to hear your voice.	Я рада слышать твой голос.
+I didn't give anything to Tom.	Я Тому ничего не давал.
+I wonder what happened to her.	Интересно, что с ней случилось.
+I'll call you in a little bit.	Я тебе скоро позвоню.
+I'm used to this cold weather.	Я привыкла к такой холодной погоде.
+It is no use trying to escape.	Пытаться бежать бесполезно.
+Kabuki is an old Japanese art.	Кабуки — древнее японское искусство.
+She is paralyzed in both legs.	Она парализована на обе ноги.
+She studies English every day.	Она занимается английским каждый день.
+That's a risk we have to take.	Это риск, на который нам приходится идти.
+That's an unquestionable fact.	Это неопровержимый факт.
+The car jack was on the table.	Автомобильный домкрат лежал на столе.
+Tom didn't think it was right.	Том не считал, что это правильно.
+Tom must've gone home already.	Том, должно быть, уже ушёл домой.
+We stayed at the Hilton Hotel.	Мы остановились в отеле "Хилтон".
+We wish Tom continued success.	Желаем Тому непрекращающегося успеха.
+We're three hours from Boston.	Мы в трёх часах езды от Бостона.
+What Chinese food do you like?	Что из китайской кухни тебе нравится?
+Why did you break up with Tom?	Почему ты порвала с Томом?
+Why do you think Tom likes it?	Почему ты думаешь, что Тому это нравится?
+Why does that not surprise me?	И почему меня это не удивляет?
+You need to sit down and rest.	Вам надо сесть и отдохнуть.
+You were a coach, weren't you?	Ты ведь был тренером?
+How can you trust these people?	Как вы можете доверять этим людям?
+How did you come by such a job?	Как тебе удалось заполучить такую работу?
+I don't want to get in trouble.	Я не желаю попадать в неприятности.
+I had to get a molar extracted.	Мне надо было вытащить коренной зуб.
+I want to show Tom around town.	Я хочу показать Тому город.
+I'm not suggesting you do that.	Я не предлагаю тебе это делать.
+If I knew it, I would tell you.	Если бы я знал это, я бы сказал тебе.
+Just act like nothing happened.	Просто веди себя так, как будто ничего не случилось.
+Tell me what you're doing here.	Скажите мне, что вы тут делаете.
+Things are getting out of hand.	Всё выходит из-под контроля.
+Tom is still in love with Mary.	Том всё ещё влюблён в Мэри.
+Tom recently got out of prison.	Том недавно вышел из тюрьмы.
+Tom says he doesn't want to go.	Том говорит, что не хочет ехать.
+Tom told me he'd be right back.	Том сказал мне, что сейчас вернётся.
+Tom told me to come here today.	Том велел мне сегодня сюда прийти.
+What time does the market open?	Во сколько открывается рынок?
+Where are you planning to stay?	Где вы собираетесь остановиться?
+You may not like what you find.	Вам может не понравиться ваша находка.
+You two are ridiculously silly.	Вы двое до смешного глупы.
+Did you see anyone on the beach?	Ты кого-нибудь видел на пляже?
+Did you show it to your parents?	Вы показывали его родителям?
+Do you have any books in French?	У вас есть какие-нибудь книги на французском?
+How long ago did the author die?	Как давно автор умер?
+I can see why it's confidential.	Я вижу, почему это конфиденциально.
+I go to school every day by bus.	Я каждый день езжу в школу на автобусе.
+I'll be waiting for you outside.	Я вас на улице буду ждать.
+I'm going to exercise every day.	Я буду заниматься ежедневно.
+I've got a big surprise for you.	У меня для вас большой сюрприз.
+She sang a Japanese song for us.	Она спела нам японскую песню.
+Show me how much money you have.	Покажи мне, сколько у тебя денег.
+His house is surrounded by trees.	Его дом окружён деревьями.
+I don't know anything about that.	Я ничего об этом не знаю.
+I don't understand him sometimes.	Иногда я его не понимаю.
+I don't want to go back home yet.	Я пока не хочу возвращаться домой.
+I think I left the water running.	По-моему, я оставил воду включённой.
+I think that we should try again.	Я думаю, что мы должны совершить повторную попытку.
+It may well be that you're right.	Вполне возможно, что ты прав.
+Keep children away from the pond.	Не подпускайте детей к пруду.
+Let's all stay at the same hotel.	Давайте все остановимся в одном отеле.
+The Americans rejected the offer.	Американцы отвергли предложение.
+Tom always orders the same thing.	Том всегда заказывает одно и то же.
+Tom is suffering from depression.	Том страдает от депрессии.
+Tom wadded up the piece of paper.	Том скомкал клочок бумаги.
+We don't know anything about you.	Мы ничего о тебе не знаем.
+We have to evacuate the building.	Нам надо эвакуировать здание.
+Who'll take care of the children?	Кто присмотрит за детьми?
+Are you waiting for me to do that?	Ты ждёшь, что я это сделаю?
+Don't give Tom your email address.	Не давайте Тому адрес своей электронной почты.
+He betrayed his friends for money.	Он предал своих друзей ради денег.
+How do you feel about your father?	Что Вы думаете о Вашем отце?
+How much more money does Tom want?	Сколько ещё денег Том хочет?
+I bought a smartphone for my wife.	Я купил жене смартфон.
+I don't think we've got much time.	Я не думаю, что у нас много времени.
+I feel like I've been here before.	У меня такое чувство, что я здесь уже был.
+I think we'll make it if we hurry.	Я думаю, что нам удастся это сделать, если мы поспешим.
+I think you're on the right track.	Думаю, ты на правильном пути.
+I wanted to go to Boston with Tom.	Я хотел поехать в Бостон с Томом.
+I'll give you each thirty dollars.	Я дам каждому из вас по тридцать долларов.
+Isn't that the Golden Gate Bridge?	Это мост "Золотые ворота"?
+One of us will attend the meeting.	Один из нас придёт на собрание.
+Our main problem remains unsolved.	Наша основная проблема остаётся нерешённой.
+This train runs nonstop to Nagoya.	Этот поезд идёт до Нагои без остановок.
+Tom slept at our place last night.	Том спал у нас вчера ночью.
+Tom stayed home with the children.	Том остался дома с детьми.
+Tom wanted to be a better husband.	Том хотел быть лучшим мужем.
+We think his last name is Jackson.	Мы думаем, его фамилия - Джексон.
+When ice melts, it becomes liquid.	При таянии лёд превращается в жидкость.
+Are you going to tell me your name?	Ты скажешь мне своё имя?
+Do you know the boy in the picture?	Знаете ли вы мальчика на этом снимке?
+He is madly in love with that girl.	Он безумно влюблён в эту девушку.
+I don't want to show it to Tom yet.	Я пока не хочу показывать его Тому.
+I forgot to ask Tom for his advice.	Я забыл спросить у Тома совета.
+I got a call from her this morning.	Она мне позвонила этим утром.
+I think you'd better do that today.	Я думаю, лучше тебе сделать это сегодня.
+I was stupid enough to believe Tom.	Я был достаточно глуп, чтобы поверить Тому.
+I would like to buy some postcards.	Я бы хотел купить открыток.
+It's a pity that you can't join us.	Жаль, что вы не можете к нам присоединиться.
+She didn't want to speak to anyone.	Она не хотела ни с кем разговаривать.
+She glanced shyly at the young man.	Она стыдливо взглянула на молодого человека.
+She kept me waiting for 30 minutes.	Она заставила меня ждать тридцать минут.
+There's narrow road to the village.	В деревню ведёт узкая дорога.
+Three people were slightly injured.	Трое получили лёгкие ранения.
+Tom got killed in a freak accident.	Том погиб в результате глупого несчастного случая.
+Tom said he didn't want to do that.	Том сказал, что не хочет этого делать.
+Tom said he'd stay there till 2:30.	Том сказал, что останется там до половины третьего.
+What's the best way to contact you?	Как мне лучше всего связаться с тобой?
+What's the fastest way out of here?	Как можно быстрее всего выбраться отсюда?
+You should've done that in October.	Ты должен был сделать это в октябре.
+Could you pass me the water, please?	Могли бы вы передать мне воду, пожалуйста?
+Do you always do what Tom tells you?	Вы всегда делаете то, что вам Том говорит?
+Everybody knows that Tom likes Mary.	Всем известно, что Том любит Мэри.
+He's the one who told me about that.	Это он мне об этом рассказал.
+I can't believe you really did that.	Поверить не могу, что ты действительно это сделал.
+I can't remember what you look like.	Я не могу вспомнить, как вы выглядите.
+I don't plan to retire until I'm 65.	Я не планирую выходить на пенсию, пока мне не исполнится шестьдесят пять лет.
+I intend to see the project through.	Я намерен довести этот проект до конца.
+I told you this was a waste of time.	Я сказал вам, что это пустая трата времени.
+I want to know who did this and why.	Я хочу знать, кто это сделал и зачем.
+I'm going to drive Tom there myself.	Я собираюсь сам отвезти Тома туда.
+I'm not going to ask you to do that.	Я не собираюсь просить тебя это сделать.
+I'm sure we'll find something there.	Уверен, мы там что-нибудь найдём.
+No gift is more precious than trust.	Нет подарка ценнее, чем доверие.
+She's been ill since last Wednesday.	Она больна с прошлой среды.
+The two ladies smiled at each other.	Две леди улыбались друг другу.
+They have already finished the work.	Они уже закончили работу.
+Tom knew he was under investigation.	Том знал, что находится под следствием.
+Tom told me not to go there anymore.	Том сказал мне, чтобы я туда больше не ездил.
+Tom told me that he hated Christmas.	Том сказал мне, что ненавидит Рождество.
+Be careful when you cross the street.	Будьте осторожны, когда переходите улицу.
+Can you tell us a bit about yourself?	Ты можешь рассказать нам немного о себе?
+I can't go to school today. I'm sick.	Я не могу сегодня идти в школу. Я заболел.
+Maybe we should ask someone for help.	Может быть, нам стоит попросить кого-нибудь о помощи.
+Tom found it difficult to please him.	Фоме было сложно ему угодить.
+Tom isn't the only one who thinks so.	Том не единственный, кто так думает.
+Tom was shocked by Mary's appearance.	Тома шокировал внешний вид Мэри.
+Tom was too proud to accept any help.	Том был слишком гордый, чтобы принять помощь.
+Tom's honesty is beyond all question.	Честность Тома вне всяких сомнений.
+We have to do that as soon as we can.	Нам надо сделать это как можно скорее.
+What museums would you like to visit?	Какие музеи вы хотели бы посетить?
+Have you made sure the door is locked?	Ты проверил, что дверь закрыта?
+He is a critic rather than a novelist.	Он скорее критик, чем романист.
+He was appointed adviser to the board.	Он был назначен советником при комитете.
+How dare you criticize my way of life!	Как ты смеешь осуждать мой образ жизни!
+I think Tom broke the dish on purpose.	Я думаю, Том нарочно разбил тарелку.
+I'm sorry that I did that without you.	Простите, что сделал это без вас.
+If I had enough money, I could buy it.	Если бы у меня было достаточно денег, я бы смог его купить.
+The police arrested him for smuggling.	Полиция арестовала его за контрабанду.
+This street used to have another name.	Эта улица раньше по-другому называлась.
+Today is the anniversary of his death.	Сегодня годовщина его смерти.
+Tom promised to clean the living room.	Том пообещал убраться в гостиной.
+Tom told me how to get to the theater.	Том рассказал мне, как добраться до театра.
+Tom warned you that this might happen.	Том предупреждал вас, что это может случиться.
+He is too cautious to try anything new.	Он слишком осторожен, чтобы попробовать что-либо новое.
+He lives all by himself in the country.	Он живёт совсем один в деревне.
+I'm not sure I want Tom working for us.	Я не уверен, что хочу, чтобы Том на нас работал.
+I'm the one who introduced Tom to Mary.	Это я познакомил Тома с Мэри.
+It doesn't look like you're very happy.	Не похоже, чтобы ты был очень счастлив.
+Let's always tell each other the truth.	Давай всегда будем говорить друг другу правду.
+The train was on time today, as always.	Поезд сегодня был вовремя, как и всегда.
+They always talk about the same things.	Они всегда говорят об одном и том же.
+They are separated by a great distance.	Их разделяет большое расстояние.
+Tom has been sick for a very long time.	Том долго болел.
+Tom likes the smell of popcorn popping.	Тому нравится запах лопающегося попкорна.
+Tom said that he didn't agree with you.	Том сказал, что он с вами не согласен.
+Tom thought Mary was going to kiss him.	Том подумал, что Мэри сейчас его поцелует.
+Tom won't be able to handle this alone.	Один Том с этим не справится.
+We must try to protect the environment.	Мы должны стараться оберегать окружающую среду.
+We used to sit on these steps and talk.	Мы, бывало, сидели на этих ступеньках и разговаривали.
+You didn't tell me Tom was so handsome.	Вы не говорили мне, что Том такой красивый.
+We caught a glimpse of the castle from the window of our train.	Мы мельком увидели замок из окна нашего поезда.
+We didn't expect the passage of the bill with so little debate.	Мы не ожидали, что этот законопроект пройдёт почти без прений.
+We should weigh the options carefully before making a decision.	Мы должны тщательно взвесить все варианты, прежде чем принять решение.
+We were wakened by the whistle of the steam locomotive at dawn.	На рассвете нас разбудил свисток локомотива.
+We weren't able to buy tickets, so we didn't go to the concert.	Мы не смогли купить билеты, так что не пошли на концерт.
+We will investigate the problem and deal with it as we see fit.	Мы изучим вопрос и решим его, как посчитаем нужным.
+We wouldn't be in this mess if you'd just done what I told you.	Мы бы не попали в такие неприятности, если бы ты просто сделал то, что я тебе говорил.
+We'd better brainstorm about it together and get a better idea.	Мы лучше ещё хорошенько подумаем об этом вместе и придумаем что-нибудь получше.
+When I arrived, everyone was sitting at the table drinking tea.	Когда я пришёл, все сидели за столом и пили чай.
+When I have homework to do, my brother always helps me with it.	Когда мне нужно делать домашнюю работу, брат всегда помогает мне.
+When I hear that song, I think about the place where I grew up.	Когда я слышу ту песню, я думаю о месте, где я вырос.
+When Tom was a teenager, he earned money delivering newspapers.	В юные годы Том зарабатывал деньги, разнося газеты.
+When he was a child, his ambition was to be an English teacher.	Когда он был ребёнком, его целью было стать учителем английского языка.
+When she comes here, tell her that I forgot to bring the books.	Когда она сюда придёт, скажи ей, что я забыл принести книги.
+When you're done with the book, put it back where you found it.	Прочтешь эту книгу, положи её на прежнее место.
+Who knows, maybe Christmas in Boston won't be so bad after all.	Кто знает, может быть Рождество в Бостоне не будет таким уж и плохим.
+Why does it take them so long to set up my internet connection?	Почему им требуется так много времени, чтобы настроить мне подключение к Интернету?
+Why don't we take a drive round the island on this ox carriage?	Почему бы нам не прокатиться вокруг острова на этой запряженной волами повозке?
+You just complicate the argument when you split hairs that way.	Вы только осложняете дело, споря о мелочах.
+You may as well burn your money as spend it on lottery tickets.	Чем тратить деньги на лотерейные билеты, можно с тем же успехом их сжечь.
+You'll find that book in the historical section of the library.	Ты найдёшь эту книгу в историческом отделе библиотеки.
+You'll get into trouble if your girlfriend finds out the truth.	Ты попадёшь в беду, если твоя девушка узнает правду.
+You'll get into trouble if your girlfriend finds out the truth.	У тебя будут неприятности, если твоя девушка узнает правду.
+You're the only person I can rely on in this kind of situation.	Ты единственный человек, на которого я могу положиться в такой ситуации.
+You're up very early this morning. Do you have something to do?	Ты что-то очень рано встал сегодня. Какие-то дела?
+"Have you ever been here before?" "No, It's my first time here."	"Ты здесь когда-нибудь уже бывал?" - "Нет, я здесь впервые".
+"Is it OK to eat this mushroom?" "It's OK to eat anything once."	"Этот гриб можно есть?" - "Один раз всё можно есть".
+"Where are my glasses?" "You've left them on the kitchen table."	"Где мои очки?" - "Ты оставил их на кухонном столе".
+"Why are you going to Japan?" "To attend a conference in Tokyo."	«Зачем Вы летите в Японию?» — «Чтобы участвовать в конференции в Токио».
+A fat white cat sat on a wall and watched them with sleepy eyes.	Толстый белый кот сидел на стене и смотрел на них сонными глазами.
+A man was seen acting suspiciously shortly before the explosion.	Незадолго до взрыва был замечен мужчина, ведущий себя подозрительно.
+A mortgage is a kind of loan that people can use to buy a house.	Ипотека — это разновидность кредита, который люди могут использовать для покупки жилья.
+After the fire, the smell of smoke remained in the air for days.	После пожара запах дыма оставался в воздухе не один день.
+British Prime Minister Neville Chamberlain was forced to resign.	Британский премьер Невилл Чемберлен был вынужден уйти в отставку.
+By the age of seven, he had already made his own bow and arrows.	В семь лет он уже сделал себе лук и стрелы.
+Can you imagine what our life would be like without electricity?	Вы можете себе представить, какой была бы наша жизнь без электричества?
+Can you imagine what our life would be like without electricity?	Вы можете себе представить, на что была бы похожа наша жизнь, не будь электричества?
+Do you know the difference between a microscope and a telescope?	Вы знаете разницу между микроскопом и телескопом?
+Do you think I'd be stupid enough to come here without a weapon?	Вы думаете, я настолько глуп, что пришёл бы сюда без оружия?
+Do you think Mary would go out with me if I asked her on a date?	Думаешь, Мэри пошла бы со мной на свидание, если бы я её пригласил?
+Do you think the police will ever find out what happened to Tom?	Думаешь, полиция когда-нибудь выяснит, что произошло с Томом?
+Don't forget that good jobs are very hard to come by these days.	Не забывай, что в настоящее время трудно найти хорошую работу.
+Don't you know that you are the laughingstock of the whole town?	Разве ты не знаешь, что над тобой смеётся весь город?
+Even a clock that is stopped shows the correct time twice a day.	Даже остановившиеся часы два раза в сутки показывают правильное время.
+Even if it takes you three years, you must accomplish your goal.	Даже если это займёт три года, ты должен добиться своей цели.
+Even the fastest runner in the world cannot run if he is hungry.	Даже самый быстрый бегун в мире не может бежать, если он голоден.
+Even though Tom is quite ugly, Mary still fell in love with him.	И хотя Том весьма безобразен, Мэри всё равно в него влюбилась.
+Everywhere you look you can see damage caused by the earthquake.	Куда ни посмотришь - всюду видны разрушения, нанесённые землетрясением.
+Favoring one gender over another won't win you any friends here.	Предпочтение одного пола перед другим не добавит вам здесь друзей.
+Finding a solution that worked was a process of trial and error.	Поиск рабочего решения проходил методом проб и ошибок.
+Given only thirty minutes, we couldn't answer all the questions.	За отведённые тридцать минут мы не могли ответить на все вопросы.
+He enjoys his sleep and doesn't like to have it interfered with.	Он любит поспать и не любит, когда его будят.
+He found the evidence that bees can communicate with each other.	Он нашёл подтверждение тому, что пчёлы могут общаться друг с другом.
+He kept badgering her until she told him what he wanted to know.	Он продолжал изводить её, пока она не сказала ему то, что он хотел знать.
+He seems to be afraid of being laughed at if he makes a mistake.	Кажется, он боится того, что над ним будут смеяться, если он сделает ошибку.
+His car turned over several times before falling into the river.	Прежде чем упасть в реку, его автомобиль несколько раз перевернулся.
+How long does it take for light from the sun to reach the earth?	Сколько времени требуется свету, чтобы преодолеть расстояние от Солнца до Земли?
+How much do you think I'll have to spend to get my car repaired?	Как ты думаешь, сколько мне придётся потратить на ремонт машины?
+How much do you think I'll have to spend to get my car repaired?	Как вы думаете, сколько мне придётся потратить на ремонт машины?
+Hypothetically a person can live a perfect life without sinning.	Теоретически, человек может прожить совершенную жизнь без греха.
+I am afraid the loss will amount to one hundred million dollars.	Я боюсь, что потери составят сто миллионов долларов.
+I am working full-time at a bookshop until the end of September.	Я до конца сентября работаю на полную ставку в книжном магазине.
+I asked Mary why she never got remarried after her husband died.	Я спросил у Мэри, почему она так и не вышла замуж после смерти мужа.
+I asked Mary why she never got remarried after her husband died.	Я спросил у Мэри, почему она так и не вышла снова замуж после того, как её муж умер.
+I asked Tom if I was on the list of people invited to the party.	Я спросил Тома, есть ли я в списке приглашённых на вечеринку.
+I called the police as soon as I saw his dead body on the floor.	Я вызвала полицию, как только увидела на полу его труп.
+I can't count the number of times Tom has complained about that.	Я не могу сосчитать, сколько раз Том уже жаловался на это.
+I changed my mind about dinner. I'm not really hungry right now.	Я передумал насчёт ужина. Я сейчас не сильно голоден.
+I didn't want to spend any more time cleaning the kitchen floor.	Я не хотел больше тратить время на уборку пола в кухне.
+I don't know if I've ever told you, but you have beautiful eyes.	Не знаю, говорил ли я это тебе когда-нибудь, но у тебя красивые глаза.
+I don't know what I would've done if you hadn't come to help me.	Не знаю, что бы я делал, если бы вы не пришли мне на помощь.
+I don't know what I would've done if you hadn't come to help me.	Не знаю, что бы я делал, если бы ты не пришёл мне на помощь.
+I don't know when Tom got married, but I do know he got married.	Не знаю, когда Том женился, но то, что он женился, я точно знаю.
+I don't like people who always insist on talking about politics.	Не люблю людей, которые настаивают на разговорах о политике.
+I don't think Tom is the only one who had to go to the hospital.	Я не думаю, что Том был единственным, кому пришлось идти в больницу.
+I don't understand it completely, but I'll try to do what I can.	Я не вполне это понимаю, но постараюсь сделать, что смогу.
+I don't understand what you find so interesting about squirrels.	Не понимаю, что такого интересного ты находишь в белках.
+I don't understand what you find so interesting about squirrels.	Не понимаю, что такого интересного вы находите в белках.
+I feel depressed because there are a lot of things I have to do.	Я чувствую себя подавленным, потому что мне ещё много всего надо сделать.
+I forgot to tell you that Tom is coming over for dinner tonight.	Я забыл тебе сказать, что Том сегодня на ужин зайдёт.
+I forgot to tell you that Tom is coming over for dinner tonight.	Я забыл вам сказать, что Том сегодня на ужин зайдёт.
+I forgot what the exact price was, but it was about 170 dollars.	Я забыл, сколько это точно стоило, что-то около 170 долларов.
+I grew up speaking French to my mother and English to my father.	Я вырос, говоря по-французски с матерью и по-английски с отцом.
+I had lived in Sendai for ten years before I visited Matsushima.	Я прожил в Сэндае десять лет, прежде чем посетил Мацусиму.
+I hadn't planned to do that, but I can if you really want me to.	Я не планировал делать это, но могу, если вам действительно это нужно.
+I have done the best I could to help you. The rest is up to you.	Я сделал всё возможное, чтобы тебе помочь. Остальное на тебе.
+I have every reason to believe that he is innocent of the crime.	У меня есть все причины верить, что он невиновен в преступлении.
+I hear that there are people in Japan who keep penguins as pets.	Я слышал, в Японии есть люди, которые держат пингвинов в качестве домашних животных.
+I hear that there are people in Japan who keep penguins as pets.	Я слышала, в Японии есть люди, которые держат пингвинов в качестве домашних животных.
+I hope you can avoid making all the stupid mistakes that I made.	Надеюсь, ты сможешь избежать всех тех глупых ошибок, которые делал я.
+I hurried to the bus stop so that I would not miss the last bus.	Я спешил на автобусную остановку, так как не хотел пропустить последний автобус.
+I just wanted to tell you that I'm really sorry for what I said.	Я просто хотел сказать тебе, что я действительно очень сожалею о том, что я сказал.
+I just wanted to tell you that I'm really sorry for what I said.	Я просто хотела сказать тебе, что я действительно очень сожалею о том, что я сказала.
+I let Tom know that I wasn't happy with the way he was behaving.	Я дала Тому знать, что мне не нравилось, как он себя ведет.
+I made up my mind to do the work no matter how hard it might be.	Я решил выполнить работу независимо от того, как тяжело это могло бы быть.
+I may be unsociable, but it doesn't mean I don't talk to people.	Возможно, я необщителен, но это не означает, что я не разговариваю с людьми.
+I need to call my parents and tell them I'll be late for dinner.	Мне нужно позвонить родителям и сказать им, что я опоздаю на ужин.
+I plan to move back to Boston since my whole family lives there.	Я планирую переехать обратно в Бостон, так как там живёт вся моя семья.
+I think it wouldn't be too hard to come up with a better system.	Я думаю, было бы слишком трудно придумать систему получше.
+I think it's time for me to talk to the boss about this problem.	Думаю, пора мне поговорить об этой проблеме с начальником.
+I told Tom that I was interested in buying one of his paintings.	Я сказал Тому, что заинтересован в покупке одной из его картин.
+I want each of you to tell me exactly what you did last weekend.	Я хочу, чтобы каждый из вас рассказал мне, что именно вы сделали за прошлые выходные.
+I want to go to Australia once again before my passport expires.	Я хочу ещё раз съездить в Австралию, пока у меня срок действия паспорта не закончился.
+I want to know how he manages to make such good use of his time.	Хотел бы я знать, как ему удаётся так рационально использовать своё время.
+I was going to go to Boston next week, but I've changed my mind.	Я собирался в Бостон на следующей неделе, но передумал.
+I was surprised when Tom told me he was planning to get married.	Я удивился, когда Том сказал мне, что собирается жениться.
+I was very surprised when Tom told me that Mary had left Boston.	Я очень удивился, когда Том сказал мне, что Мэри уехала из Бостона.
+I wasn't surprised when Tom told Mary he didn't need to do that.	Я не удивился, когда Том сказал Мэри, что ему не нужно это делать.
+I wasn't surprised when Tom told me Mary didn't need to do that.	Я не удивился, когда Том сказал мне, что Мэри не нужно это делать.
+I wasn't surprised when Tom told me Mary didn't want to do that.	Я не удивился, когда Том сказал мне, что Мэри не хочет это делать.
+I would rather remain single than live an unhappy life with him.	Я лучше останусь одна, чем буду всю жизнь несчастлива с ним.
+I would've told you before, but I didn't think you'd understand.	Я бы тебе раньше сказал, но я не думал, что ты поймешь.
+I'd like to find out how Tom is getting along with his new boss.	Я хотел бы выяснить, как Том ладит со своим новым начальником.
+I'd like to talk to you about what happened at school yesterday.	Я хотел бы поговорить с Вами о том, что случилось в школе вчера.
+I'd like you to help me if you have nothing in particular to do.	Я хотел бы, чтобы вы мне помогли, если у вас нет особых дел.
+I'd like you to help me if you have nothing in particular to do.	Я хотел бы, чтобы ты мне помог, если у тебя нет особых дел.
+I'm glad you didn't tell Tom. That would've ruined the surprise.	Я рад, что ты не сказал Тому. Это могло бы испортить сюрприз.
+I'm glad you didn't tell Tom. That would've ruined the surprise.	Я рад, что ты не сказала Тому. Это могло бы испортить сюрприз.
+I'm glad you didn't tell Tom. That would've ruined the surprise.	Я рад, что вы не сказали Тому. Это могло бы испортить сюрприз.
+I'm interested in that house you've got for rent on Park Street.	Меня интересует дом, который вы сдаете на Парк-стрит.
+I'm pretty sure that Tom doesn't want to go to Boston with Mary.	Я почти уверен, что Том не хочет ехать в Бостон с Мэри.
+I'm sick and tired of eating the same thing for lunch every day.	Мне надоело каждый день есть на обед одно и то же.
+I'm sorry for calling so late. I just wanted to hear your voice.	Извини, что звоню так поздно. Я лишь хотел услышать твой голос.
+I'm sorry for calling so late. I just wanted to hear your voice.	Прости, что так поздно звоню. Я просто хотела услышать твой голос.
+I'm sorry for calling so late. I just wanted to hear your voice.	Прости, что так поздно звоню. Я просто хотел услышать твой голос.
+I've heard that you shouldn't eat red meat more than once a day.	Я слышал, тебе не следует больше одного раза в день есть красное мясо.
+I've heard that you shouldn't eat red meat more than once a day.	Говорят, что не стоит есть красное мясо чаще раза в день.
+If I gave you three hundred dollars, what would you spend it on?	Если бы я дал тебе триста долларов, на что бы ты их потратил?
+If I knew his address, I would get in touch with him right away.	Если бы я знал его адрес, я бы с ним сразу же связался.
+If I read this book once more, I shall have read it three times.	Если я прочитаю эту книгу еще раз, получится, что я прочитал ее трижды.
+If I remember correctly, you were quite optimistic at that time.	Если память меня не подводит, Вы были в то время довольно оптимистичным.
+If I'd known that Tom was in the hospital, I'd have visited him.	Если бы я знал, что Том в больнице, я бы его навестил.
+If they'd taken their doctors' advice, they might not have died.	Если бы они следовали советам врачей, они, возможно, не умерли бы.
+If you believe what politicians say, it's really your own fault.	Если ты веришь тому, что говорят политики, то это, вообще говоря, твоя собственная вина.
+If you believe what politicians say, it's really your own fault.	Если ты веришь словам политиков, ты, в общем-то, сам виноват.
+If you go hiking in the desert, be sure to take plenty of water.	Собираясь заняться автостопом в пустыне, не забудьте захватить с собой побольше воды.
+If you had one word to describe Tom, how would you describe him?	Как бы ты описал Тома одним словом?
+If you have finished reading the book, return it to the library.	Если дочитал книгу до конца, верни ее в библиотеку.
+If you have finished reading the book, return it to the library.	Если ты прочитал книгу, то верни её в библиотеку.
+If you have not yet paid this bill, please let us hear from you.	Если вы еще не оплатили этот счет, пожалуйста, свяжитесь с нами.
+If you turn to the left, you will find the church on your right.	Если ты свернешь налево, то увидишь церковь справа от себя.
+If you want more details about that, you'll have to ask my boss.	Если вы хотите более подробную информацию об этом, вы должны спросить моего босса.
+In the near future, space travel will no longer be just a dream.	В близком будущем космическое путешествие больше не будет всего лишь мечтой.
+In the near future, space travel will no longer be just a dream.	В недалёком будущем космические путешествия будут уже не просто мечтой.
+Instead of going back to the party, why don't we go to my place?	Вместо того, чтобы возвращаться на вечеринку, почему бы нам не пойти ко мне?
+Is eating a clove of garlic every day beneficial to your health?	Полезно ли для здоровья съедать каждый день зубчик чеснока?
+Is it possible to determine the diameter from the circumference?	Можно ли вычислить диаметр, зная длину окружности?
+Is it true that your family will travel in Hokkaido? I envy you.	Это правда, что ты вместе с семьей поедешь в путешествие на Хоккайдо? Я завидую тебе.
+It goes without saying that autumn is the best season for study.	Бесспорно, осень - лучшее время для учёбы.
+It is not safe for a girl to go out by herself so late at night.	Небезопасно для девушки идти одной так поздно ночью.
+It is often said that the world is becoming smaller and smaller.	Часто говорят, что мир становится все меньше и меньше.
+It is strange that he is not here. He always comes at this time.	Странно, что его здесь нет. Он всегда приходит в это время.
+It isn't likely that Tom will shed any tears if Mary gets fired.	Не похоже, что Том будет сильно горевать, если Мэри уволят.
+It looks like the party in power will win the upcoming election.	Похоже, партия власти победит на грядущих выборах.
+It looks like the party in power will win the upcoming election.	Похоже, что правящая партия победит на предстоящих выборах.
+It never occurred to me that someone would make up such a thing.	Мне и в голову не приходило, что кто-то может такое выдумать.
+It was a nice place to visit, but I wouldn't want to live there.	Это место было хорошо посетить, но я бы не хотел жить там.
+It was a nice place to visit, but I wouldn't want to live there.	Это место было хорошо посетить, но я бы не хотела жить там.
+It was very hard to anticipate how Tom would react to this news.	Было очень трудно предугадать, как Том воспримет эту новость.
+It will take me more than three hours to look over the document.	На то, чтобы хорошенько изучить документ, у меня уйдёт более трёх часов.
+It's difficult to teach people what they are unwilling to learn.	Трудно научить людей тому, чему они не хотят учиться.
+Japan came under American pressure to open its financial market.	Япония была вынуждена открыть свой финансовый рынок под давлением США.
+Just being in Tom's company is enough to ruin Mary's reputation.	Уже одного того, что Мэри бывает в обществе Тома, достаточно, чтобы испортить её репутацию.
+Just stick around a few days and you'll come to love this place.	Просто побудь здесь несколько дней, и ты полюбишь это место.
+Many people did not want to believe that this story was made up.	Многие не хотели верить, что эта история вымышленная.
+Many people think that children spend too much time watching TV.	Многие думают, что дети проводят слишком много времени у телевизора.
+Maybe you should apologize for all of the stupid things you did.	Наверное, ты должен извиниться за все те глупости, что натворил.
+Men aren't usually as interested in figure skating as women are.	Мужчины, как правило, не интересуются фигурным катанием так, как женщины.
+Michael Jackson was the most famous singer in the United States.	Майкл Джексон был самым известным певцом в Соединённых Штатах.
+My bicycle had a flat tire, so I missed the seven o'clock train.	У моего велосипеда спустило колесо, поэтому я пропустил семичасовой поезд.
+My father has a habit of reading the newspaper before breakfast.	У моего отца привычка читать газету перед завтраком.
+My train leaves at six o'clock and arrives there at ten o'clock.	Мой поезд выходит в шесть и прибывает туда в десять.
+My wife usually doesn't drink coffee at night, and neither do I.	Моя жена обычно не пьёт кофе ночью, да и я не пью.
+My wife usually doesn't drink coffee at night, and neither do I.	Моя жена обычно не пьёт кофе по ночам, и я тоже.
+Neither Tom nor Mary plans to go to Boston with us next weekend.	Ни Том, ни Мэри не планируют ехать с нами в следующие выходные в Бостон.
+Next February, I'll be going to Australia for one year to study.	В феврале следующего года я поеду в Австралию на один год с целью учёбы.
+Now ten dollars buys less than five dollars did three years ago.	Сейчас на десять долларов можно купить меньше, чем на пять долларов три года назад.
+One of the most urgent challenges of our time is climate change.	Одной из наиболее насущных проблем нашего времени является проблема изменения климата.
+Oslo is the largest city in Norway with a population of 629,313.	Осло - самый большой город Норвегии с населением 629 313 человек.
+Our college won't admit Tom until he meets all the requirements.	Тома не примут в наш вуз, пока он не будет отвечать всем требованиям.
+Our company is planning to build a new chemical plant in Russia.	Наша компания планирует построить в России новый химический завод.
+Our train had already pulled out when we arrived at the station.	Наш поезд уже отправился, когда мы прибыли на станцию.
+Parents are proud of their children when they do well in school.	Когда дети успевают в школе, их родители ими гордятся.
+Passengers can take a certain amount of baggage on the airplane.	Пассажиры могут взять на самолёт некоторое количество багажа.
+Please mail this letter the next time you go to the post office.	Отправьте, пожалуйста, это письмо, когда в следующий раз пойдёте на почту.
+Read the newspaper every day, or you will fall behind the times.	Каждый день читайте газеты, или отстанете от жизни.
+Running as fast as she could, she still failed to catch the bus.	Пробежав так быстро, как она только могла, она всё равно не успела на автобус.
+She hasn't come here yet. I am afraid she may have lost her way.	Она еще не пришла. Боюсь, она могла заблудиться.
+She was very embarrassed when her child behaved badly in public.	Она была очень смущена, когда её ребенок плохо повёл себя на людях.
+Some people believe they can become rich without having to work.	Некоторые люди верят, что смогут разбогатеть, не работая.
+Somebody tipped off the gang members to the police surveillance.	Кто-то предупредил членов банды о полицейском наблюдении.
+Someone who doesn't drink in company is either a thief or a spy.	Тот, кто не пьёт в компании, — либо вор, либо шпион.
+Speaking of Switzerland, have you ever been there in the winter?	Кстати о Швейцарии, вы когда-нибудь были там зимой?
+That foreigner spoke Japanese as if it were his native language.	Этот иностранец говорил по-японски так, как будто это был его родной язык.
+That foreigner spoke Japanese as if it were his native language.	Этот иностранец говорил по-японски, как на своём родном языке.
+The Japanese economy continued to grow by more than 5% annually.	Японская экономика продолжила расти более чем на 5% ежегодно.
+The ancient Greeks knew as much about the solar system as we do.	Древние греки знали о Солнечной системе столько же, сколько знаем мы.
+The bomb was defused just minutes before it would have exploded.	Бомбу обезвредили всего за несколько минут до взрыва.
+The bridge between Denmark and Sweden is almost five miles long.	Мост между Данией и Швецией составляет почти 5 миль в длину.
+The car went out of control and pitched headlong into the river.	Машина потеряла управление и на полном ходу упала в реку.
+The company he used to work for went into bankruptcy last month.	Компания, в которой он раньше работал, обанкротилась в прошлом месяце.
+The defense attorney jumped to his feet and shouted "Objection!"	Защитник вскочил и выкрикнул "протестую!".
+The doctor told Tom to lower the amount of red meat that he ate.	Врач сказал Тому, чтобы тот сократил количество красного мяса в своём рационе.
+The earth makes one revolution around the sun in about 365 days.	Земля делает оборот вокруг Солнца примерно за триста шестьдесять пять дней.
+The earthquake was the biggest one that we had ever experienced.	Это землетрясение — самое мощное на нашей памяти.
+The express train does not stop between Shibuya and Naka-Meguro.	Поезд-экспресс не останавливается между Сибуей и Нака-Мэгуро.
+The first black president of the United States was Barack Obama.	Первым чернокожим президентом США был Барак Обама.
+The food in my country is not very different from that of Spain.	Еда в моей стране не сильно отличается от той, что в Испании.
+The last time our family got together was three Christmases ago.	Последний раз наша семья собиралась вместе три Рождества назад.
+The matter is coming up before the board of executives tomorrow.	Дело завтра будет обсуждаться на заседании совета директоров.
+The movie that Tom and Mary watched together had a happy ending.	Фильм, который Том и Мэри посмотрели вместе, был со счастливым концом.
+The number of people suffering from heart disease has increased.	Количество людей, страдающих от сердечных заболеваний, увеличилось.
+The older you are, the more difficult it is to learn a language.	Чем старше становишься, тем труднее выучить другой язык.
+The police demanded that the criminal hand over the gun to them.	Полиция потребовала, чтобы преступники передали ей оружие.
+The police looked everywhere and couldn't find any trace of Tom.	Полиция смотрела везде и не смогла найти ни единого следа Тома.
+The pyramids of Egypt are one of the seven wonders of the world.	Египетские пирамиды — одно из семи чудес света.
+The reason for your failure is that you did not try hard enough.	Причина твоей неудачи в том, что ты недостаточно старался.
+The reason for your failure is that you did not try hard enough.	Причина твоего поражения в том, что ты плохо старался.
+The sales in Japan are small in comparison with those in Europe.	Продажи в Японии невелики в сравнении с аналогичными показателями в Европе.
+The shoes were made of some soft stuff that looked like leather.	Туфли были сделаны из какого-то мягкого материла, похожего на кожу.
+The teacher said we had to learn all these expressions by heart.	Учитель сказал, что мы должны выучить все эти выражения наизусть.
+The value of the coins depended on the weight of the metal used.	Стоимость монеты зависела от веса использованного металла.
+There are some things we can change if we choose to change them.	Есть несколько вещей, которые мы можем изменить, если решим изменить их.
+There are still many things left to learn about the human brain.	О человеческом мозге ещё немало предстоит узнать.
+There was a larger crowd at the concert than we had anticipated.	На концерте было больше народа, чем мы предполагали.
+There's a fire in the building. We have to evacuate immediately.	В здании пожар. Мы должны эвакуироваться немедленно.
+There's nothing like a glass of natural, freshly squeezed juice.	Ничто не сравнится со стаканом натурального свежевыжатого сока.
+There's something about this translation that isn't quite right.	Что-то в этом переводе не совсем то.
+There's something about this translation that isn't quite right.	Что-то с этим переводом не так.
+They earn their living by collecting and selling old newspapers.	Они зарабатывают себе на жизнь, собирая и продавая старые газеты.
+Thieves broke into the palace and stole the princess's diamonds.	Воры проникли во дворец и украли бриллианты принцессы.
+This book is easy to read, since it's written in simple English.	Эту книгу легко читать, поскольку она написана на простом английском.
+This book is for students whose native language is not Japanese.	Эта книга для студентов, чей родной язык не японский.
+This book is for students whose native language is not Japanese.	Эта книга предназначена для студентов, у которых японский не является родным языком.
+This building looks large from the front, but not from the side.	Это здание выглядит большим спереди, но не со стороны.
+This increase in unemployment is a consequence of the recession.	Этот рост безработицы - результат рецессии.
+This study compares the immigration policies of various nations.	Это исследование сравнивает иммиграционную политику разных стран.
+This technology will drastically lower the cost of solar energy.	Эта технология радикальным образом понизит цену солнечной энергии.
+This technology will drastically lower the cost of solar energy.	Эта технология резко снизит цену солнечной энергии.
+Thousands of candles illuminated the church during the ceremony.	Тысячи свечей освещали церковь во время церемонии.
+Today, I'm finally going to tell Tom what I really think of him.	Сегодня я наконец скажу Тому, что я на самом деле о нём думаю.
+Tom always keeps a set of jumper cables in the trunk of his car.	Том всегда держит в багажнике своей машины комплект кабелей для «прикуривания».
+Tom always uses the rice cooker that he brought back from Japan.	Том всегда пользуется рисоваркой, которую привёз из Японии.
+Tom and I haven't seen each other since we were in kindergarten.	Мы с Томом не виделись с детского сада.
+Tom and Mary had trouble making themselves understood in French.	Тому и Мэри было трудно понятно изъясняться на французском.
+Tom and Mary named their first daughter after Tom's grandmother.	Том и Мэри назвали свою первую дочь в честь бабушки Тома.
+Tom and Mary were both fatter three years ago than they are now.	Три года назад Том и Мэри были жирнее, чем теперь.
+Tom and Mary were speaking in French when John entered the room.	Том и Мэри говорили по-французски, когда Джон вошёл в комнату.
+Tom and Mary woke up early to see the first sunrise of the year.	Том и Мэри встали рано, чтобы увидеть первый рассвет года.
+Tom asked Mary not to make any long-distance calls on his phone.	Том попросил Мэри не делать междугородних звонков с его телефона.
+Tom asked Mary some stupid questions that she refused to answer.	Том задал Мэри несколько глупых вопросов, на которые она ответить отказалась.
+Tom asked me if I knew what time the meeting was going to start.	Том спросил, не знаю ли я, во сколько начнётся встреча.
+Tom ate a Japanese-style breakfast for the first time yesterday.	У Тома вчера впервые был завтрак в японском стиле.
+Tom bought that car for three thousand dollars three months ago.	Том купил эту машину три месяца назад за три тысячи долларов.
+Tom burned the roof of his mouth biting into the slice of pizza.	Откусывая кусок пиццы, Том обжёг нёбо.
+Tom certainly didn't expect to inherit the house from his uncle.	Том явно не ожидал, что получит в наследство дом своего дяди.
+Tom closed his eyes and leaned against the side of the elevator.	Том закрыл глаза и прислонился к стенке лифта.
+Tom didn't get off the airplane with the rest of the passengers.	Том не вышел из самолёта вместе с остальными пассажирами.
+Tom didn't have the courage to admit that he had made a mistake.	У Тома не было храбрости, чтобы признать, что он совершил ошибку.
+Tom didn't tell anyone that he'd bought a diamond ring for Mary.	Том никому не сказал, что купил Мэри кольцо с бриллиантом.
+Tom died of heart failure on October twentieth at the age of 93.	Том умер двадцатого октября в возрасте девяноста трёх лет от сердечной недостаточности.
+Tom doesn't have to go to school tomorrow if he doesn't want to.	Том может не ходить завтра в школу, если не хочет.
