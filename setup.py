@@ -18,7 +18,7 @@ following commands in Terminal:
 .. code::
     git clone https://github.com/nsu-ai/conv1d-text-vae.git
     cd conv1d-text-vae
-    sudo python setup.py
+    sudo python setup.py install
 You can also run the tests:
 .. code::
     python setup.py test
