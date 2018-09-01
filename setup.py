@@ -27,7 +27,7 @@ You can also run the tests:
 setup(
     name='conv1d-text-vae',
     version=conv1d_text_vae.__version__,
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(exclude=['tests', 'demo']),
     include_package_data=True,
     description='A convolutional variational autoencoder for text generation and semantic hashing '
                 'with the simple sklearn-like interface',
