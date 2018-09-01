@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-import seq2seq_lstm
+import conv1d_text_vae
 
 long_description = '''
 conv1d-text-vae
@@ -25,9 +25,9 @@ You can also run the tests:
 '''
 
 setup(
-    name='seq2seq-lstm',
-    version=seq2seq_lstm.__version__,
-    packages=find_packages(exclude=['tests', 'demo']),
+    name='conv1d-text-vae',
+    version=conv1d_text_vae.__version__,
+    packages=find_packages(exclude=['tests']),
     include_package_data=True,
     description='A convolutional variational autoencoder for text generation and semantic hashing '
                 'with the simple sklearn-like interface',
@@ -46,8 +46,6 @@ setup(
         'Topic :: Text Processing',
         'Topic :: Text Processing :: Linguistic',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
