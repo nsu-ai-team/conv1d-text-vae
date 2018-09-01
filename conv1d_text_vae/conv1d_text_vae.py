@@ -356,6 +356,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         tmp_fasttext_name = Conv1dTextVAE.get_temp_name()
         try:
             src.save(tmp_fasttext_name)
+            src.wv.save(tmp_fasttext_name + '.wv')
             res = FastText.load(tmp_fasttext_name)
         finally:
             Conv1dTextVAE.remove_fasttext_files(tmp_fasttext_name)
@@ -609,6 +610,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         try:
             self.remove_fasttext_files(tmp_model_name)
             model.save(tmp_model_name)
+            model.wv.save(tmp_model_name + '.wv')
             with open(tmp_model_name, 'rb') as fp:
                 weights_of_model['model'] = fp.read()
             dir_name = os.path.dirname(tmp_model_name)
