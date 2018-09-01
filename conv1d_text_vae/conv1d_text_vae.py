@@ -1,6 +1,7 @@
 import copy
 import os
 import math
+import re
 import tempfile
 from typing import List, Tuple, Union
 
@@ -39,11 +40,61 @@ class BaseTokenizer:
 
 
 class DefaultTokenizer(BaseTokenizer):
-    def __init__(self):
+    def __init__(self, special_symbols: set=None):
         super().__init__()
+        self.special_symbols = special_symbols
         self.tokenizer = NISTTokenizer()
+        if (self.special_symbols is not None) and (len(self.special_symbols) > 0):
+            re_expr = '(' + '|'.join([re.escape(cur) for cur in self.special_symbols]) + ')'
+            self.re_for_special_symbols = re.compile(re_expr)
+        else:
+            self.re_for_special_symbols = None
 
     def tokenize_into_words(self, src: str) -> List[Tuple[int, int]]:
+        prep = src.strip()
+        if len(prep) == 0:
+            return []
+        if self.re_for_special_symbols is None:
+            bounds_of_tokens = self.__tokenize_text(src)
+        else:
+            bounds_of_subphrases = []
+            start_pos = 0
+            for search_res in self.re_for_special_symbols.finditer(src):
+                if (search_res.start() < 0) or (search_res.end() < 0):
+                    break
+                bounds_of_subphrases.append(('', (start_pos, search_res.start())))
+                cur_symbol = src[search_res.start():search_res.end()]
+                bounds_of_subphrases.append(
+                    (
+                        cur_symbol,
+                        (search_res.start(), search_res.end())
+                    )
+                )
+                start_pos = search_res.end()
+            if start_pos < len(src):
+                bounds_of_subphrases.append(('', (start_pos, len(src))))
+            bounds_of_tokens = []
+            for cur_subphrase in bounds_of_subphrases:
+                if len(cur_subphrase[0]) == 0:
+                    text = src[cur_subphrase[1][0]:cur_subphrase[1][1]]
+                    bounds_of_tokens_in_text = self.__tokenize_text(text)
+                    for cur_token in bounds_of_tokens_in_text:
+                        bounds_of_tokens.append(
+                            (
+                                cur_subphrase[1][0] + cur_token[0],
+                                cur_subphrase[1][0] + cur_token[1]
+                            )
+                        )
+                else:
+                    bounds_of_tokens.append(
+                        (
+                            cur_subphrase[1][0],
+                            cur_subphrase[1][1]
+                        )
+                    )
+        return bounds_of_tokens
+
+    def __tokenize_text(self, src: str) -> List[Tuple[int, int]]:
         prep = src.strip()
         if len(prep) == 0:
             return []
@@ -59,19 +110,27 @@ class DefaultTokenizer(BaseTokenizer):
         return bounds_of_tokens
 
     def __getstate__(self):
-        return dict()
+        return {'special_symbols': self.special_symbols}
 
     def __setstate__(self, state):
+        self.special_symbols = state['special_symbols']
+        if (self.special_symbols is not None) and (len(self.special_symbols) > 0):
+            re_expr = '(' + '|'.join([re.escape(cur) for cur in self.special_symbols]) + ')'
+            self.re_for_special_symbols = re.compile(re_expr)
+        else:
+            self.re_for_special_symbols = None
         self.tokenizer = NISTTokenizer()
 
     def __copy__(self):
         cls = self.__class__
         result = cls.__new__(cls)
+        result.special_symbols = self.special_symbols
         result.tokenizer = NISTTokenizer()
 
     def __deepcopy__(self, memodict={}):
         cls = self.__class__
         result = cls.__new__(cls)
+        result.special_symbols = copy.deepcopy(self.special_symbols)
         result.tokenizer = NISTTokenizer()
 
 
@@ -169,15 +228,24 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             else:
                 self.input_text_size_ = self.input_text_size
             self.full_model_, self.encoder_model_, self.decoder_model_, self.base_model_ = self.__create_model()
+        if hasattr(self.tokenizer, 'special_symbols'):
+            if (self.tokenizer.special_symbols is None) or (len(self.tokenizer.special_symbols) == 0):
+                special_symbols = None
+            else:
+                special_symbols = tuple(sorted(list(self.tokenizer.special_symbols)))
+        else:
+            special_symbols = None
         training_set_generator = TextPairSequence(
             input_texts=X_train, target_texts=y_train, tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
-            input_embeddings=self.input_embeddings, output_embeddings=self.output_embeddings
+            input_embeddings=self.input_embeddings, output_embeddings=self.output_embeddings,
+            special_symbols=special_symbols
         )
         evaluation_set_generator = TextPairSequence(
             input_texts=X_eval, target_texts=y_eval, tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
-            input_embeddings=self.input_embeddings, output_embeddings=self.output_embeddings
+            input_embeddings=self.input_embeddings, output_embeddings=self.output_embeddings,
+            special_symbols=special_symbols
         )
         callbacks = [
             EarlyStopping(patience=5, verbose=(1 if self.verbose else 0))
@@ -213,8 +281,15 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         outputs = None
         if self.tokenizer is None:
             self.tokenizer = DefaultTokenizer()
+        if hasattr(self.tokenizer, 'special_symbols'):
+            if self.tokenizer.special_symbols is not None:
+                special_symbols = tuple(sorted(list(self.tokenizer.special_symbols)))
+            else:
+                special_symbols = None
+        else:
+            special_symbols = None
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
-                                                 self.input_embeddings):
+                                                 self.input_embeddings, special_symbols):
             outputs_for_batch = self.encoder_model_.predict(data_for_batch)
             start_pos = 0 if outputs is None else outputs.shape[0]
             if (start_pos + outputs_for_batch.shape[0]) <= len(X):
@@ -234,8 +309,15 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if self.tokenizer is None:
             self.tokenizer = DefaultTokenizer()
         start_pos = 0
+        if hasattr(self.tokenizer, 'special_symbols'):
+            if self.tokenizer.special_symbols is not None:
+                special_symbols = tuple(sorted(list(self.tokenizer.special_symbols)))
+            else:
+                special_symbols = None
+        else:
+            special_symbols = None
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
-                                                 self.input_embeddings):
+                                                 self.input_embeddings, special_symbols):
             outputs_for_batch = self.full_model_.predict(data_for_batch)
             end_pos = start_pos + outputs_for_batch.shape[0]
             if (end_pos + start_pos) > len(X):
@@ -245,7 +327,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 words_of_text = []
                 for time_idx in range(outputs_for_batch.shape[1]):
                     best_variants_of_word = self.find_best_words(outputs_for_batch[sample_idx][time_idx],
-                                                                 self.output_embeddings, self.n_text_variants)
+                                                                 self.output_embeddings, self.n_text_variants,
+                                                                 special_symbols)
                     if best_variants_of_word is None:
                         break
                     if len(best_variants_of_word) > 0:
@@ -306,29 +389,59 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                'decoder_model_', 'base_model_'])
 
     @staticmethod
-    def find_best_words(word_vector: np.ndarray, embeddings_model: FastText, n: int) -> Union[List[tuple], None]:
+    def find_best_words(word_vector: np.ndarray, embeddings_model: FastText, n: int,
+                        special_symbols: Tuple[str]=None) -> Union[List[tuple], None]:
+        vector_size = embeddings_model.vector_size + 2
+        if special_symbols is not None:
+            vector_size += len(special_symbols)
         norm_value = np.linalg.norm(word_vector[:embeddings_model.vector_size])
         if norm_value < K.epsilon():
             norm_value = 1.0
         res = embeddings_model.wv.similar_by_vector(word_vector[:embeddings_model.vector_size] / norm_value, topn=n)
-        best_vector = np.zeros((embeddings_model.vector_size + 2,), dtype=np.float32)
+        best_vector = np.zeros((vector_size,), dtype=np.float32)
         best_vector[0:embeddings_model.vector_size] = embeddings_model.wv[res[0][0]]
         norm_value = np.linalg.norm(best_vector)
         if norm_value > 0.0:
             best_vector /= norm_value
-        end_sentence_vector = np.zeros((embeddings_model.vector_size + 2,), dtype=np.float32)
-        end_sentence_vector[embeddings_model.vector_size + 1] = 1.0
-        unknown_word_vector = np.zeros((embeddings_model.vector_size + 2,), dtype=np.float32)
-        unknown_word_vector[embeddings_model.vector_size] = 1.0
+        end_sentence_vector = np.zeros((vector_size,), dtype=np.float32)
+        end_sentence_vector[vector_size - 1] = 1.0
+        unknown_word_vector = np.zeros((vector_size,), dtype=np.float32)
+        unknown_word_vector[vector_size - 2] = 1.0
+        if (special_symbols is not None) and (len(special_symbols) > 0):
+            special_vectors = np.zeros((len(special_symbols), vector_size), dtype=np.float32)
+            distance_to_special_vectors = np.zeros((len(special_symbols),), dtype=np.float32)
+            for special_idx in range(len(special_symbols)):
+                special_vectors[special_idx][embeddings_model.vector_size + special_idx] = 1.0
+                distance_to_special_vectors[special_idx] = distance.cosine(word_vector, special_vectors[special_idx])
+            special_idx = int(distance_to_special_vectors.argmin())
+        else:
+            special_idx = -1
+            distance_to_special_vectors = None
         distance_to_end_vector = distance.cosine(word_vector, end_sentence_vector)
         distance_to_unknown_word = distance.cosine(word_vector, unknown_word_vector)
         distance_to_best_word = distance.cosine(word_vector, best_vector)
         if distance_to_end_vector < distance_to_unknown_word:
             if distance_to_end_vector < distance_to_best_word:
-                res = None
+                if special_idx >= 0:
+                    if distance_to_end_vector < distance_to_special_vectors[special_idx]:
+                        res = None
+                    else:
+                        res = [(special_symbols[special_idx], distance_to_special_vectors[special_idx])]
+                else:
+                    res = None
         else:
             if distance_to_unknown_word < distance_to_best_word:
-                res = []
+                if special_idx >= 0:
+                    if distance_to_unknown_word < distance_to_special_vectors[special_idx]:
+                        res = []
+                    else:
+                        res = [(special_symbols[special_idx], distance_to_special_vectors[special_idx])]
+                else:
+                    res = []
+            else:
+                if special_idx >= 0:
+                    if distance_to_special_vectors[special_idx] < distance_to_best_word:
+                        res = [(special_symbols[special_idx], distance_to_special_vectors[special_idx])]
         return res
 
     @staticmethod
@@ -494,15 +607,18 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @staticmethod
     def texts_to_data(input_texts: Union[list, tuple, np.ndarray], batch_size: int, max_text_size: int,
-                      tokenizer: BaseTokenizer, fasttext_model: FastText):
+                      tokenizer: BaseTokenizer, fasttext_model: FastText, special_symbols: tuple=None):
         n_batches = int(math.ceil(len(input_texts) / batch_size))
+        vector_size = fasttext_model.vector_size + 2
+        if (special_symbols is not None) and (len(special_symbols) > 0):
+            vector_size += len(special_symbols)
         for batch_ind in range(n_batches):
-            input_data = np.zeros((batch_size, max_text_size, fasttext_model.vector_size + 2), dtype=np.float32)
+            input_data = np.zeros((batch_size, max_text_size, vector_size), dtype=np.float32)
             start_pos = batch_ind * batch_size
             end_pos = start_pos + batch_size
             for src_text_idx in range(start_pos, end_pos):
                 for time_idx in range(max_text_size):
-                    input_data[src_text_idx - start_pos, time_idx, fasttext_model.vector_size + 1] = 1.0
+                    input_data[src_text_idx - start_pos, time_idx, vector_size - 1] = 1.0
             for src_text_idx in range(start_pos, end_pos):
                 prep_text_idx = src_text_idx
                 if src_text_idx >= len(input_texts):
@@ -512,19 +628,23 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 for time_idx, token in enumerate(Conv1dTextVAE.tokenize(input_text, bounds_of_input_words)):
                     if time_idx >= max_text_size:
                         break
-                    try:
-                        word_vector = fasttext_model.wv[token]
-                    except:
-                        word_vector = None
-                    if word_vector is None:
-                        input_data[src_text_idx - start_pos, time_idx, fasttext_model.vector_size] = 1.0
+                    if (special_symbols is not None) and (token in special_symbols):
+                        input_data[src_text_idx - start_pos, time_idx,
+                                   fasttext_model.vector_size + special_symbols.index(token)] = 1.0
                     else:
-                        vector_norm = np.linalg.norm(word_vector)
-                        if vector_norm < K.epsilon():
-                            vector_norm = 1.0
-                        input_data[src_text_idx - start_pos, time_idx, 0:fasttext_model.vector_size] = \
-                            word_vector / vector_norm
-                    input_data[src_text_idx - start_pos, time_idx, fasttext_model.vector_size + 1] = 0.0
+                        try:
+                            word_vector = fasttext_model.wv[token]
+                        except:
+                            word_vector = None
+                        if word_vector is None:
+                            input_data[src_text_idx - start_pos, time_idx, vector_size - 2] = 1.0
+                        else:
+                            vector_norm = np.linalg.norm(word_vector)
+                            if vector_norm < K.epsilon():
+                                vector_norm = 1.0
+                            input_data[src_text_idx - start_pos, time_idx, 0:fasttext_model.vector_size] = \
+                                word_vector / vector_norm
+                    input_data[src_text_idx - start_pos, time_idx, vector_size - 1] = 0.0
             yield input_data
 
     @staticmethod
@@ -775,7 +895,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
 class TextPairSequence(Sequence):
     def __init__(self, tokenizer, input_texts, target_texts, batch_size, input_text_size, output_text_size,
-                 input_embeddings, output_embeddings):
+                 input_embeddings, output_embeddings, special_symbols):
         self.tokenizer = tokenizer
         self.input_texts = list()
         self.target_texts = list()
@@ -784,6 +904,7 @@ class TextPairSequence(Sequence):
         self.output_text_size = output_text_size
         self.n_text_pairs = len(input_texts)
         self.n_batches = self.n_text_pairs // self.batch_size
+        self.special_symbols = special_symbols
         self.input_vocabulary = dict()
         for idx in range(len(input_texts)):
             cur_text = input_texts[idx]
@@ -797,7 +918,10 @@ class TextPairSequence(Sequence):
                     except:
                         word_vector = None
                     if word_vector is not None:
-                        self.input_vocabulary[cur_word] = word_vector
+                        vector_norm = np.linalg.norm(word_vector)
+                        if vector_norm < K.epsilon():
+                            vector_norm = 1.0
+                        self.input_vocabulary[cur_word] = word_vector / vector_norm
         self.output_vocabulary = dict()
         for idx in range(len(target_texts)):
             cur_text = target_texts[idx]
@@ -811,7 +935,10 @@ class TextPairSequence(Sequence):
                     except:
                         word_vector = None
                     if word_vector is not None:
-                        self.output_vocabulary[cur_word] = word_vector
+                        vector_norm = np.linalg.norm(word_vector)
+                        if vector_norm < K.epsilon():
+                            vector_norm = 1.0
+                        self.output_vocabulary[cur_word] = word_vector / vector_norm
         self.input_vector_size = input_embeddings.vector_size
         self.output_vector_size = output_embeddings.vector_size
 
@@ -821,15 +948,18 @@ class TextPairSequence(Sequence):
     def __getitem__(self, idx):
         start_pos = idx * self.batch_size
         end_pos = start_pos + self.batch_size
-        input_data = np.zeros((self.batch_size, self.input_text_size, self.input_vector_size + 2),
-                              dtype=np.float32)
-        target_data = np.zeros((self.batch_size, self.output_text_size, self.output_vector_size + 2),
-                               dtype=np.float32)
+        input_vector_size = self.input_vector_size + 2
+        output_vector_size = self.output_vector_size + 2
+        if (self.special_symbols is not None) and (len(self.special_symbols) > 0):
+            input_vector_size += len(self.special_symbols)
+            output_vector_size += len(self.special_symbols)
+        input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
+        target_data = np.zeros((self.batch_size, self.output_text_size, output_vector_size), dtype=np.float32)
         for idx_in_batch in range(self.batch_size):
             for time_idx in range(self.input_text_size):
-                input_data[idx_in_batch, time_idx, self.input_vector_size + 1] = 1.0
+                input_data[idx_in_batch, time_idx, input_vector_size - 1] = 1.0
             for time_idx in range(self.output_text_size):
-                target_data[idx_in_batch, time_idx, self.output_vector_size + 1] = 1.0
+                target_data[idx_in_batch, time_idx, output_vector_size - 1] = 1.0
         idx_in_batch = 0
         for src_text_idx in range(start_pos, end_pos):
             prep_text_idx = src_text_idx
@@ -839,27 +969,28 @@ class TextPairSequence(Sequence):
             for time_idx, token in enumerate(input_text):
                 if time_idx >= self.input_text_size:
                     break
-                word_vector = self.input_vocabulary.get(token, None)
-                if word_vector is not None:
-                    vector_norm = np.linalg.norm(word_vector)
-                    if vector_norm < K.epsilon():
-                        vector_norm = 1.0
-                    input_data[idx_in_batch, time_idx, 0:self.input_vector_size] = word_vector / vector_norm
+                if (self.special_symbols is not None) and (token in self.special_symbols):
+                    input_data[idx_in_batch, time_idx, self.input_vector_size + self.special_symbols.index(token)] = 1.0
                 else:
-                    input_data[idx_in_batch, time_idx, self.input_vector_size] = 1.0
-                input_data[idx_in_batch, time_idx, self.input_vector_size + 1] = 0.0
+                    word_vector = self.input_vocabulary.get(token, None)
+                    if word_vector is not None:
+                        input_data[idx_in_batch, time_idx, 0:self.input_vector_size] = word_vector
+                    else:
+                        input_data[idx_in_batch, time_idx, input_vector_size - 2] = 1.0
+                input_data[idx_in_batch, time_idx, input_vector_size - 1] = 0.0
             target_text = self.target_texts[prep_text_idx]
             for time_idx, token in enumerate(target_text):
                 if time_idx >= self.output_text_size:
                     break
-                word_vector = self.output_vocabulary.get(token, None)
-                if word_vector is None:
-                    target_data[idx_in_batch, time_idx, self.output_vector_size] = 1.0
+                if (self.special_symbols is not None) and (token in self.special_symbols):
+                    target_data[idx_in_batch, time_idx, self.output_vector_size +
+                                self.special_symbols.index(token)] = 1.0
                 else:
-                    vector_norm = np.linalg.norm(word_vector)
-                    if vector_norm < K.epsilon():
-                        vector_norm = 1.0
-                    target_data[idx_in_batch, time_idx, 0:self.output_vector_size] = word_vector / vector_norm
-                target_data[idx_in_batch, time_idx, self.output_vector_size + 1] = 0.0
+                    word_vector = self.output_vocabulary.get(token, None)
+                    if word_vector is None:
+                        target_data[idx_in_batch, time_idx, output_vector_size - 2] = 1.0
+                    else:
+                        target_data[idx_in_batch, time_idx, 0:self.output_vector_size] = word_vector
+                target_data[idx_in_batch, time_idx, output_vector_size - 1] = 0.0
             idx_in_batch += 1
         return input_data, target_data
