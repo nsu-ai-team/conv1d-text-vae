@@ -337,14 +337,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         variants_and_similarities = []
         new_variant = []
         for word_idx in range(len(variants_of_text)):
-            new_variant.append(variants_of_text[word_idx][0])
-            for variant_idx in range(1, len(variants_of_text[word_idx])):
-                variants_and_similarities.append(((word_idx, variant_idx), variants_of_text[word_idx][variant_idx][1]))
+            variants_of_word = variants_of_text[word_idx]
+            new_variant.append(variants_of_word[0][0])
+            for variant_idx in range(1, len(variants_of_word)):
+                variants_and_similarities.append(((word_idx, variant_idx), variants_of_word[variant_idx][1]))
         used_variants.append(' '.join(new_variant))
         variants_and_similarities.sort(key=lambda it: (-it[1], it[0][0], it[0][1]))
         for variant_idx in range(min(ntop - 1, len(variants_and_similarities))):
             word_idx = variants_and_similarities[variant_idx][0][0]
-            new_variant[word_idx] = variants_of_text[word_idx][variants_and_similarities[variant_idx][0][1]]
+            variants_of_word = variants_of_text[word_idx]
+            best_variant_idx = variants_and_similarities[variant_idx][0][1]
+            new_variant[word_idx] = variants_of_word[best_variant_idx][0]
             used_variants.append(' '.join(new_variant))
         return used_variants
 
