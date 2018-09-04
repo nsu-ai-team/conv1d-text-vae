@@ -338,6 +338,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     generated_texts.append(tuple(self.find_best_texts(words_of_text, self.n_text_variants)))
                 else:
                     generated_texts.append(tuple([]))
+            start_pos = end_pos
         return (np.array(generated_texts, dtype=object) if isinstance(X, np.ndarray) else (
             tuple(generated_texts) if isinstance(X, tuple) else generated_texts))
 
