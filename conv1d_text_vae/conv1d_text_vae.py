@@ -309,7 +309,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         generated_texts = []
         if self.tokenizer is None:
             self.tokenizer = DefaultTokenizer()
-        start_pos = 0
         if hasattr(self.tokenizer, 'special_symbols'):
             if self.tokenizer.special_symbols is not None:
                 special_symbols = tuple(sorted(list(self.tokenizer.special_symbols)))
@@ -317,12 +316,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 special_symbols = None
         else:
             special_symbols = None
+        n_all_texts = len(X)
+        start_pos = 0
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
                                                  self.input_embeddings, special_symbols):
             outputs_for_batch = self.full_model_.predict(data_for_batch)
             end_pos = start_pos + outputs_for_batch.shape[0]
-            if (end_pos + start_pos) > len(X):
-                end_pos = len(X)
+            if end_pos > n_all_texts:
+                end_pos = n_all_texts
             n_texts_in_batch = end_pos - start_pos
             for sample_idx in range(n_texts_in_batch):
                 words_of_text = []
@@ -338,7 +339,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     generated_texts.append(tuple(self.find_best_texts(words_of_text, self.n_text_variants)))
                 else:
                     generated_texts.append(tuple([]))
-            start_pos = end_pos
+            start_pos += outputs_for_batch.shape[0]
         return (np.array(generated_texts, dtype=object) if isinstance(X, np.ndarray) else (
             tuple(generated_texts) if isinstance(X, tuple) else generated_texts))
 

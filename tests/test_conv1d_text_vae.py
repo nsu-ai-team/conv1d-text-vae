@@ -919,7 +919,7 @@ class TestConv1dTextVAE(unittest.TestCase):
             _ = self.text_vae.transform(texts)
 
     def test_predict_positive01(self):
-        batch_size = 10
+        batch_size = 3
         while (len(self.input_texts) % batch_size) == 0:
             batch_size += 1
         self.text_vae.batch_size = batch_size
