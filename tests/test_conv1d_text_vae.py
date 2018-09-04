@@ -733,7 +733,7 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     def test_find_best_words_positive01(self):
         word_vector = np.zeros((self.ru_fasttext_model.vector_size + 2,), dtype=np.float32)
-        word_vector[0:self.ru_fasttext_model.vector_size] = self.ru_fasttext_model.wv['нейросеть']
+        word_vector[0:self.ru_fasttext_model.vector_size] = self.ru_fasttext_model['нейросеть']
         best_words = Conv1dTextVAE.find_best_words(word_vector, self.ru_fasttext_model, 3)
         self.assertIsInstance(best_words, list)
         self.assertEqual(len(best_words), 3)
