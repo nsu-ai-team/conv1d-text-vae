@@ -903,8 +903,13 @@ class TextPairSequence(Sequence):
         self.output_text_size = output_text_size
         self.n_text_pairs = len(input_texts)
         self.n_batches = self.n_text_pairs // self.batch_size
-        self.special_symbols = special_symbols
+        input_vector_size = input_embeddings.vector_size + 2
+        output_vector_size = output_embeddings.vector_size + 2
+        if (special_symbols is not None) and (len(special_symbols) > 0):
+            input_vector_size += len(special_symbols)
+            output_vector_size += len(special_symbols)
         self.input_vocabulary = dict()
+        word_idx = 0
         for idx in range(len(input_texts)):
             cur_text = input_texts[idx]
             bounds_of_words = self.tokenizer.tokenize_into_words(cur_text)
@@ -912,16 +917,27 @@ class TextPairSequence(Sequence):
             self.input_texts.append(words)
             for cur_word in words:
                 if cur_word not in self.input_vocabulary:
-                    try:
-                        word_vector = input_embeddings[cur_word]
-                    except:
-                        word_vector = None
-                    if word_vector is not None:
-                        vector_norm = np.linalg.norm(word_vector)
-                        if vector_norm < K.epsilon():
-                            vector_norm = 1.0
-                        self.input_vocabulary[cur_word] = word_vector / vector_norm
+                    self.input_vocabulary[cur_word] = word_idx
+                    word_idx += 1
+        self.input_word_vectors = np.zeros((word_idx, input_vector_size), dtype=np.float32)
+        for cur_word in self.input_vocabulary:
+            word_idx = self.input_vocabulary[cur_word]
+            if (special_symbols is not None) and (cur_word in special_symbols):
+                self.input_word_vectors[word_idx, input_embeddings.vector_size + special_symbols.index(cur_word)] = 1.0
+            else:
+                try:
+                    word_vector = input_embeddings[cur_word]
+                except:
+                    word_vector = None
+                if word_vector is None:
+                    self.input_word_vectors[word_idx, input_vector_size - 2] = 1.0
+                else:
+                    vector_norm = np.linalg.norm(word_vector)
+                    if vector_norm < K.epsilon():
+                        vector_norm = 1.0
+                    self.input_word_vectors[word_idx, 0:input_embeddings.vector_size] = word_vector / vector_norm
         self.output_vocabulary = dict()
+        word_idx = 0
         for idx in range(len(target_texts)):
             cur_text = target_texts[idx]
             bounds_of_words = self.tokenizer.tokenize_into_words(cur_text)
@@ -929,17 +945,26 @@ class TextPairSequence(Sequence):
             self.target_texts.append(words)
             for cur_word in words:
                 if cur_word not in self.output_vocabulary:
-                    try:
-                        word_vector = output_embeddings[cur_word]
-                    except:
-                        word_vector = None
-                    if word_vector is not None:
-                        vector_norm = np.linalg.norm(word_vector)
-                        if vector_norm < K.epsilon():
-                            vector_norm = 1.0
-                        self.output_vocabulary[cur_word] = word_vector / vector_norm
-        self.input_vector_size = input_embeddings.vector_size
-        self.output_vector_size = output_embeddings.vector_size
+                    self.output_vocabulary[cur_word] = word_idx
+                    word_idx += 1
+        self.output_word_vectors = np.zeros((word_idx, output_vector_size), dtype=np.float32)
+        for cur_word in self.output_vocabulary:
+            word_idx = self.output_vocabulary[cur_word]
+            if (special_symbols is not None) and (cur_word in special_symbols):
+                self.output_word_vectors[word_idx, output_embeddings.vector_size +
+                                         special_symbols.index(cur_word)] = 1.0
+            else:
+                try:
+                    word_vector = output_embeddings[cur_word]
+                except:
+                    word_vector = None
+                if word_vector is None:
+                    self.output_word_vectors[word_idx, output_vector_size - 2] = 1.0
+                else:
+                    vector_norm = np.linalg.norm(word_vector)
+                    if vector_norm < K.epsilon():
+                        vector_norm = 1.0
+                    self.output_word_vectors[word_idx, 0:output_embeddings.vector_size] = word_vector / vector_norm
 
     def __len__(self):
         return self.n_batches
@@ -947,11 +972,8 @@ class TextPairSequence(Sequence):
     def __getitem__(self, idx):
         start_pos = idx * self.batch_size
         end_pos = start_pos + self.batch_size
-        input_vector_size = self.input_vector_size + 2
-        output_vector_size = self.output_vector_size + 2
-        if (self.special_symbols is not None) and (len(self.special_symbols) > 0):
-            input_vector_size += len(self.special_symbols)
-            output_vector_size += len(self.special_symbols)
+        input_vector_size = self.input_word_vectors.shape[1]
+        output_vector_size = self.output_word_vectors.shape[1]
         input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
         target_data = np.zeros((self.batch_size, self.output_text_size, output_vector_size), dtype=np.float32)
         for idx_in_batch in range(self.batch_size):
@@ -968,28 +990,11 @@ class TextPairSequence(Sequence):
             for time_idx, token in enumerate(input_text):
                 if time_idx >= self.input_text_size:
                     break
-                if (self.special_symbols is not None) and (token in self.special_symbols):
-                    input_data[idx_in_batch, time_idx, self.input_vector_size + self.special_symbols.index(token)] = 1.0
-                else:
-                    word_vector = self.input_vocabulary.get(token, None)
-                    if word_vector is not None:
-                        input_data[idx_in_batch, time_idx, 0:self.input_vector_size] = word_vector
-                    else:
-                        input_data[idx_in_batch, time_idx, input_vector_size - 2] = 1.0
-                input_data[idx_in_batch, time_idx, input_vector_size - 1] = 0.0
+                input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
             target_text = self.target_texts[prep_text_idx]
             for time_idx, token in enumerate(target_text):
                 if time_idx >= self.output_text_size:
                     break
-                if (self.special_symbols is not None) and (token in self.special_symbols):
-                    target_data[idx_in_batch, time_idx, self.output_vector_size +
-                                self.special_symbols.index(token)] = 1.0
-                else:
-                    word_vector = self.output_vocabulary.get(token, None)
-                    if word_vector is None:
-                        target_data[idx_in_batch, time_idx, output_vector_size - 2] = 1.0
-                    else:
-                        target_data[idx_in_batch, time_idx, 0:self.output_vector_size] = word_vector
-                target_data[idx_in_batch, time_idx, output_vector_size - 1] = 0.0
+                target_data[idx_in_batch, time_idx] = self.output_word_vectors[self.output_vocabulary[token]]
             idx_in_batch += 1
         return input_data, target_data
