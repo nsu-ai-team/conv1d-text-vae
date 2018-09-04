@@ -5,7 +5,7 @@ import re
 import tempfile
 from typing import List, Tuple, Union
 
-from gensim.models import FastText
+from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import Input
@@ -135,10 +135,11 @@ class DefaultTokenizer(BaseTokenizer):
 
 
 class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
-    def __init__(self, input_embeddings: FastText, output_embeddings: FastText, tokenizer: BaseTokenizer=None,
-                 n_filters: int=128, kernel_size: int=3, hidden_layer_size: int=128, latent_dim: int=50,
-                 input_text_size: int=None, output_text_size: int=None, batch_size: int=64, max_epochs: int=100,
-                 validation_fraction: float=0.2, warm_start: bool=False, verbose: bool=False, n_text_variants: int=3):
+    def __init__(self, input_embeddings: FastTextKeyedVectors, output_embeddings: FastTextKeyedVectors,
+                 tokenizer: BaseTokenizer=None, n_filters: int=128, kernel_size: int=3, hidden_layer_size: int=128,
+                 latent_dim: int=50, input_text_size: int=None, output_text_size: int=None, batch_size: int=64,
+                 max_epochs: int=100, validation_fraction: float=0.2, warm_start: bool=False, verbose: bool=False,
+                 n_text_variants: int=3):
         self.n_filters = n_filters
         self.kernel_size = kernel_size
         self.hidden_layer_size = hidden_layer_size
@@ -389,17 +390,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                'decoder_model_', 'base_model_'])
 
     @staticmethod
-    def find_best_words(word_vector: np.ndarray, embeddings_model: FastText, n: int,
-                        special_symbols: Tuple[str]=None) -> Union[List[tuple], None]:
+    def find_best_words(word_vector: np.ndarray, embeddings_model: FastTextKeyedVectors, n: int,
+                        special_symbols: tuple=None) -> Union[List[tuple], None]:
         vector_size = embeddings_model.vector_size + 2
         if special_symbols is not None:
             vector_size += len(special_symbols)
         norm_value = np.linalg.norm(word_vector[:embeddings_model.vector_size])
         if norm_value < K.epsilon():
             norm_value = 1.0
-        res = embeddings_model.wv.similar_by_vector(word_vector[:embeddings_model.vector_size] / norm_value, topn=n)
+        res = embeddings_model.similar_by_vector(word_vector[:embeddings_model.vector_size] / norm_value, topn=n)
         best_vector = np.zeros((vector_size,), dtype=np.float32)
-        best_vector[0:embeddings_model.vector_size] = embeddings_model.wv[res[0][0]]
+        best_vector[0:embeddings_model.vector_size] = embeddings_model[res[0][0]]
         norm_value = np.linalg.norm(best_vector)
         if norm_value > 0.0:
             best_vector /= norm_value
@@ -465,12 +466,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         return used_variants
 
     @staticmethod
-    def copy_embeddings(src: FastText) -> FastText:
+    def copy_embeddings(src: FastTextKeyedVectors) -> FastTextKeyedVectors:
         tmp_fasttext_name = Conv1dTextVAE.get_temp_name()
         try:
             src.save(tmp_fasttext_name)
-            src.wv.save(tmp_fasttext_name + '.wv')
-            res = FastText.load(tmp_fasttext_name)
+            res = FastTextKeyedVectors.load(tmp_fasttext_name)
         finally:
             Conv1dTextVAE.remove_fasttext_files(tmp_fasttext_name)
         return res
@@ -495,14 +495,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     def check_params(**params):
         if 'input_embeddings' not in params:
             raise ValueError('The parameter `input_embeddings` is not defined!')
-        if not isinstance(params['input_embeddings'], FastText):
+        if not isinstance(params['input_embeddings'], FastTextKeyedVectors):
             raise ValueError('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(FastText()), type(params['input_embeddings'])))
+                type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(params['input_embeddings'])))
         if 'output_embeddings' not in params:
             raise ValueError('The parameter `output_embeddings` is not defined!')
-        if not isinstance(params['output_embeddings'], FastText):
+        if not isinstance(params['output_embeddings'], FastTextKeyedVectors):
             raise ValueError('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(FastText()), type(params['output_embeddings'])))
+                type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(params['output_embeddings'])))
         if 'warm_start' not in params:
             raise ValueError('The parameter `warm_start` is not defined!')
         if (not isinstance(params['warm_start'], bool)) and (not isinstance(params['warm_start'], int)):
@@ -607,7 +607,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @staticmethod
     def texts_to_data(input_texts: Union[list, tuple, np.ndarray], batch_size: int, max_text_size: int,
-                      tokenizer: BaseTokenizer, fasttext_model: FastText, special_symbols: tuple=None):
+                      tokenizer: BaseTokenizer, fasttext_model: FastTextKeyedVectors, special_symbols: tuple=None):
         n_batches = int(math.ceil(len(input_texts) / batch_size))
         vector_size = fasttext_model.vector_size + 2
         if (special_symbols is not None) and (len(special_symbols) > 0):
@@ -633,7 +633,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                    fasttext_model.vector_size + special_symbols.index(token)] = 1.0
                     else:
                         try:
-                            word_vector = fasttext_model.wv[token]
+                            word_vector = fasttext_model[token]
                         except:
                             word_vector = None
                         if word_vector is None:
@@ -694,7 +694,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             end_idx += 1
         return res[start_idx:end_idx]
 
-    def __load_fasttext_model(self, data_as_bytes: dict) -> FastText:
+    def __load_fasttext_model(self, data_as_bytes: dict) -> FastTextKeyedVectors:
         if not isinstance(data_as_bytes, dict):
             raise ValueError(u'The `data_as_bytes` must be a `{0}`, not `{1}`!'.format(
                 type({1: 'a', 2: 'b'}), type(data_as_bytes)))
@@ -719,18 +719,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 additional_name = tmp_model_name + cur_key[len('model'):]
                 with open(additional_name, 'wb') as fp:
                     fp.write(data_as_bytes[cur_key])
-            model = FastText.load(tmp_model_name)
+            model = FastTextKeyedVectors.load(tmp_model_name)
         finally:
             self.remove_fasttext_files(tmp_model_name)
         return model
 
-    def __dump_fasttext_model(self, model: FastText) -> dict:
+    def __dump_fasttext_model(self, model: FastTextKeyedVectors) -> dict:
         tmp_model_name = self.get_temp_name()
         weights_of_model = dict()
         try:
             self.remove_fasttext_files(tmp_model_name)
             model.save(tmp_model_name)
-            model.wv.save(tmp_model_name + '.wv')
             with open(tmp_model_name, 'rb') as fp:
                 weights_of_model['model'] = fp.read()
             dir_name = os.path.dirname(tmp_model_name)

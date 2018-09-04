@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 from sklearn.exceptions import NotFittedError
-from gensim.models import FastText
+from gensim.models.keyedvectors import FastTextKeyedVectors
 
 from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, TextPairSequence
 from conv1d_text_vae.fasttext_loading import load_russian_fasttext
@@ -335,7 +335,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         params = self.text_vae.__dict__
         params['input_embeddings'] = 4
         true_err_msg = re.escape('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(FastText()), type(4)))
+            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(4)))
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
@@ -350,7 +350,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         params = self.text_vae.__dict__
         params['output_embeddings'] = 3.5
         true_err_msg = re.escape('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(FastText()), type(3.5)))
+            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(3.5)))
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
@@ -919,6 +919,10 @@ class TestConv1dTextVAE(unittest.TestCase):
             _ = self.text_vae.transform(texts)
 
     def test_predict_positive01(self):
+        batch_size = 10
+        while (len(self.input_texts) % batch_size) == 0:
+            batch_size += 1
+        self.text_vae.batch_size = batch_size
         res = self.text_vae.fit_predict(self.input_texts, self.target_texts)
         self.assertIsInstance(res, list)
         self.assertEqual(len(self.input_texts), len(res))
@@ -971,8 +975,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
-        self.assertIsInstance(res.input_embeddings, FastText)
-        self.assertIsInstance(res.output_embeddings, FastText)
+        self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
+        self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)
@@ -1014,8 +1018,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
-        self.assertIsInstance(res.input_embeddings, FastText)
-        self.assertIsInstance(res.output_embeddings, FastText)
+        self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
+        self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)

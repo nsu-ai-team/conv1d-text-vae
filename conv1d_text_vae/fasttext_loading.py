@@ -5,9 +5,10 @@ import shutil
 import tarfile
 
 from gensim.models import FastText
+from gensim.models.keyedvectors import FastTextKeyedVectors
 
 
-def load_russian_fasttext():
+def load_russian_fasttext() -> FastTextKeyedVectors:
     fasttext_ru_dirname = os.path.join(os.path.dirname(__file__), '..', 'data',
                                        'araneum_none_fasttextcbow_300_5_2018')
     if not os.path.isdir(fasttext_ru_dirname):
@@ -21,10 +22,10 @@ def load_russian_fasttext():
         with tarfile.open(fasttext_ru_archive, 'r:gz') as fasttext_tar:
             fasttext_tar.extractall(fasttext_ru_dirname)
         os.remove(fasttext_ru_archive)
-    return FastText.load(os.path.join(fasttext_ru_dirname, 'araneum_none_fasttextcbow_300_5_2018.model'))
+    return FastText.load(os.path.join(fasttext_ru_dirname, 'araneum_none_fasttextcbow_300_5_2018.model')).wv
 
 
-def load_english_fasttext():
+def load_english_fasttext() -> FastTextKeyedVectors:
     fasttext_ru_modelname = os.path.join(os.path.dirname(__file__), '..', 'data', 'cc.en.300.bin')
     if not os.path.isfile(fasttext_ru_modelname):
         url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/cc.en.300.bin.gz'
@@ -35,4 +36,4 @@ def load_english_fasttext():
             fp.write(response.content)
         with gzip.open(fasttext_ru_archive, 'rb') as fasttext_gzip, open(fasttext_ru_modelname, 'wb') as res_fp:
             shutil.copyfileobj(fasttext_gzip, res_fp, length=1024)
-    return FastText.load_fasttext_format(fasttext_ru_modelname)
+    return FastText.load_fasttext_format(fasttext_ru_modelname).wv
