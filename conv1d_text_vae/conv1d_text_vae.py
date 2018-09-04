@@ -913,7 +913,7 @@ class TextPairSequence(Sequence):
             for cur_word in words:
                 if cur_word not in self.input_vocabulary:
                     try:
-                        word_vector = input_embeddings.wv[cur_word]
+                        word_vector = input_embeddings[cur_word]
                     except:
                         word_vector = None
                     if word_vector is not None:
@@ -930,7 +930,7 @@ class TextPairSequence(Sequence):
             for cur_word in words:
                 if cur_word not in self.output_vocabulary:
                     try:
-                        word_vector = output_embeddings.wv[cur_word]
+                        word_vector = output_embeddings[cur_word]
                     except:
                         word_vector = None
                     if word_vector is not None:
