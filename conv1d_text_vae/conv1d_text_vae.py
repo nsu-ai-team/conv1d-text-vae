@@ -915,8 +915,10 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
         decoder_input = Input(K.int_shape(z)[1:], name='decoder_input')
-        decoder = Dense(np.prod(shape_before_flattening[1:]), activation='relu', name='decoder_dense',
-                        trainable=True)(Dropout(0.5, name='decoder_dropout')(decoder_input))
+        decoder = Dense(self.hidden_layer_size, activation='relu', name='decoder_dense')\
+            (Dropout(0.5, name='decoder_dropout')(decoder_input))
+        decoder = Dense(np.prod(shape_before_flattening[1:]), activation='relu', name='decoder_dense_2',
+                        trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
         decoder = Reshape(shape_before_flattening[1:], name='decoder_reshape')(decoder)
         decoder = Conv1DTranspose(decoder, filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                                   name='decoder', trainable=True)
@@ -952,7 +954,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             )(decoder)
             decoder_model_with_special_layer = Model(decoder_input, special_output_layer, name='DecoderModel_')
             full_model = Model(encoder_input, decoder_model_with_special_layer(z), name='FullVAE')
-            full_model.compile(optimizer=Adamax(clipnorm=10.0), loss=vae_loss)
+            full_model.compile(optimizer=Adamax(), loss=vae_loss)
         if self.verbose:
             print('')
             print('ENCODER:')
