@@ -891,7 +891,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.mean(xent_loss - 0.5 * kl_loss)
 
         def vectors_to_onehot(args):
-            return K.softmax(K.dot(args, output_wv_))
+            return K.softmax(100.0 * K.dot(args, output_wv_))
 
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='relu',
                             name: str="", trainable: bool=True):
