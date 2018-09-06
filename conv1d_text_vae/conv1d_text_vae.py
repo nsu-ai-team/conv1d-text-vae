@@ -907,6 +907,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         encoder = Conv1D(filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                          padding='same', name='encoder_conv1d', trainable=(not warm_start))(encoder_input)
         encoder = BatchNormalization(name='encoder_batchnorm1')(encoder)
+        if self.input_text_size_ >= 4:
+            encoder = MaxPool1D(pool_size=2, name='encoder_maxpool')(encoder)
         encoder = Dense(self.hidden_layer_size, activation='relu', name='encoder_dense', trainable=(not warm_start))(
             Dropout(0.5, name='encoder_dropout')(Flatten(name='encoder_flatten')(encoder)))
         encoder = BatchNormalization(name='encoder_batchnorm2')(encoder)
