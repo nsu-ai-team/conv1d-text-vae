@@ -11,7 +11,7 @@ from sklearn.exceptions import NotFittedError
 from gensim.models.keyedvectors import FastTextKeyedVectors
 
 from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, TextPairSequence
-from conv1d_text_vae.fasttext_loading import load_russian_fasttext
+from conv1d_text_vae.fasttext_loading import load_russian_fasttext_rusvectores
 
 
 class TestDefaultTokenizer(unittest.TestCase):
@@ -62,7 +62,7 @@ class TextTextPairSequence(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.fasttext_model = load_russian_fasttext()
+        cls.fasttext_model = load_russian_fasttext_rusvectores()
 
     @classmethod
     def tearDownClass(cls):
@@ -226,7 +226,7 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ru_fasttext_model = load_russian_fasttext()
+        cls.ru_fasttext_model = load_russian_fasttext_rusvectores()
         text_corpus_name = os.path.join(os.path.dirname(__file__), 'testdata', 'testdata.csv')
         cls.input_texts = []
         cls.target_texts = []
@@ -765,7 +765,7 @@ class TestConv1dTextVAE(unittest.TestCase):
             self.assertIsInstance(best_words[variant_idx][1], float)
             self.assertGreaterEqual(best_words[variant_idx][1], 0.0)
         for variant_idx in range(1, len(best_words)):
-            self.assertGreaterEqual(best_words[variant_idx - 1][1], best_words[variant_idx][1])
+            self.assertLessEqual(best_words[variant_idx - 1][1], best_words[variant_idx][1])
 
     def test_find_best_words_positive02(self):
         word_vector = np.zeros((self.ru_fasttext_model.vector_size + 2,), dtype=np.float32)
@@ -791,6 +791,32 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(len(best_words[0]), 2)
         self.assertEqual(best_words[0][0], '\n')
         self.assertAlmostEqual(best_words[0][1], 0.0)
+
+    def test_find_best_texts(self):
+        word_vector_1 = np.zeros((self.ru_fasttext_model.vector_size + 2,), dtype=np.float32)
+        word_vector_1[0:self.ru_fasttext_model.vector_size] = self.ru_fasttext_model['мама']
+        word_vector_2 = np.zeros((self.ru_fasttext_model.vector_size + 2,), dtype=np.float32)
+        word_vector_2[0:self.ru_fasttext_model.vector_size] = self.ru_fasttext_model['мыть']
+        word_vector_3 = np.zeros((self.ru_fasttext_model.vector_size + 2,), dtype=np.float32)
+        word_vector_3[0:self.ru_fasttext_model.vector_size] = self.ru_fasttext_model['рама']
+        ntop = 5
+        true_top_variant = 'мама мыть рама'
+        best_variants_of_word1 = tuple(Conv1dTextVAE.find_best_words(word_vector_1, self.ru_fasttext_model, ntop))
+        best_variants_of_word2 = tuple(Conv1dTextVAE.find_best_words(word_vector_2, self.ru_fasttext_model, ntop))
+        best_variants_of_word3 = tuple(Conv1dTextVAE.find_best_words(word_vector_3, self.ru_fasttext_model, ntop))
+        best_variants = Conv1dTextVAE.find_best_texts(
+            [
+                best_variants_of_word1,
+                best_variants_of_word2,
+                best_variants_of_word3
+            ],
+            ntop
+        )
+        self.assertIsInstance(best_variants, list)
+        self.assertEqual(len(best_variants), ntop)
+        for variant_idx in range(len(best_variants)):
+            self.assertIsInstance(best_variants[variant_idx], str)
+        self.assertEqual(best_variants[0], true_top_variant)
 
     def test_fit_positive01(self):
         self.text_vae.verbose = True

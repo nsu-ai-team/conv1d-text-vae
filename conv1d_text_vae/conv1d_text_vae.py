@@ -9,7 +9,7 @@ from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import Input
-from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda, BatchNormalization
+from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda
 from keras.layers import ZeroPadding1D, UpSampling1D, MaxPool1D
 from keras.layers import TimeDistributed
 from keras.models import Model
@@ -456,24 +456,34 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 if special_idx >= 0:
                     if distance_to_special_vectors[special_idx] < distance_to_best_word:
                         res = [(special_symbols[special_idx], distance_to_special_vectors[special_idx])]
+                else:
+                    vectors_of_similar_words = np.zeros((len(res), vector_size), dtype=np.float32)
+                    for idx in range(len(res)):
+                        vectors_of_similar_words[idx, 0:embeddings_model.vector_size] = embeddings_model[res[idx][0]]
+                        norm_value = np.linalg.norm(vectors_of_similar_words[idx])
+                        if norm_value > 0.0:
+                            vectors_of_similar_words[idx] /= norm_value
+                    res = [(res[idx][0], distance.cosine(word_vector, vectors_of_similar_words[idx]))
+                           for idx in range(len(res))]
+                    res.sort(key=lambda it: (it[1], it[0]))
         return res
 
     @staticmethod
     def find_best_texts(variants_of_text: List[tuple], ntop: int) -> List[str]:
         used_variants = []
-        variants_and_similarities = []
+        variants_and_distances = []
         new_variant = []
         for word_idx in range(len(variants_of_text)):
             variants_of_word = variants_of_text[word_idx]
             new_variant.append(variants_of_word[0][0])
             for variant_idx in range(1, len(variants_of_word)):
-                variants_and_similarities.append(((word_idx, variant_idx), variants_of_word[variant_idx][1]))
+                variants_and_distances.append(((word_idx, variant_idx), variants_of_word[variant_idx][1]))
         used_variants.append(' '.join(new_variant))
-        variants_and_similarities.sort(key=lambda it: (-it[1], it[0][0], it[0][1]))
-        for variant_idx in range(min(ntop - 1, len(variants_and_similarities))):
-            word_idx = variants_and_similarities[variant_idx][0][0]
+        variants_and_distances.sort(key=lambda it: (it[1], it[0][0], it[0][1]))
+        for variant_idx in range(min(ntop - 1, len(variants_and_distances))):
+            word_idx = variants_and_distances[variant_idx][0][0]
             variants_of_word = variants_of_text[word_idx]
-            best_variant_idx = variants_and_similarities[variant_idx][0][1]
+            best_variant_idx = variants_and_distances[variant_idx][0][1]
             new_variant[word_idx] = variants_of_word[best_variant_idx][0]
             used_variants.append(' '.join(new_variant))
         return used_variants
@@ -899,36 +909,34 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             x = Conv2DTranspose(filters=filters, kernel_size=(kernel_size, 1), activation=activation,
                                 strides=(strides, 1), padding=padding, name=name+'_deconv1d_part2',
                                 trainable=trainable)(x)
-            x = Lambda(lambda x: K.squeeze(x, axis=2), name='deconv1d_part3')(x)
+            x = Lambda(lambda x: K.squeeze(x, axis=2), name=name+'_deconv1d_part3')(x)
             return x
 
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
         encoder = Conv1D(filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                          padding='same', name='encoder_conv1d', trainable=(not warm_start))(encoder_input)
-        encoder = BatchNormalization(name='encoder_batchnorm1')(encoder)
         if self.input_text_size_ >= 4:
+            padding = self.input_text_size_ % 2
+            if padding > 0:
+                encoder = ZeroPadding1D(padding=(0, padding), name='encoder_zeropadding')(encoder)
             encoder = MaxPool1D(pool_size=2, name='encoder_maxpool')(encoder)
         encoder = Dense(self.hidden_layer_size, activation='relu', name='encoder_dense', trainable=(not warm_start))(
             Dropout(0.5, name='encoder_dropout')(Flatten(name='encoder_flatten')(encoder)))
-        encoder = BatchNormalization(name='encoder_batchnorm2')(encoder)
         z_mean = Dense(self.latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
         z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
         decoder = Dense(self.hidden_layer_size, activation='relu', name='decoder_dense')\
             (Dropout(0.5, name='decoder_dropout')(z))
-        decoder = BatchNormalization(name='decoder_batchnorm1')(decoder)
         if self.output_text_size_ < 4:
-            shape_for_decode = (self.output_text_size_, output_vector_size)
+            shape_for_decode = (self.output_text_size_, self.n_filters)
             decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
                             trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
-            decoder = BatchNormalization(name='decoder_batchnorm2')(decoder)
             decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
         else:
-            shape_for_decode = (self.output_text_size_ // 2, output_vector_size)
+            shape_for_decode = (self.output_text_size_ // 2, self.n_filters)
             decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
                             trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
-            decoder = BatchNormalization(name='decoder_batchnorm2')(decoder)
             decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
             decoder = UpSampling1D(size=2, name='decoder_upsampling')(decoder)
             padding = self.output_text_size_ - shape_for_decode[0] * 2
@@ -936,7 +944,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 decoder = ZeroPadding1D(padding=(0, padding), name='decoder_zeropadding')(decoder)
         decoder = Conv1DTranspose(decoder, filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                                   name='decoder', trainable=True)
-        decoder = BatchNormalization(name='decoder_batchnorm3')(decoder)
         decoder = Conv1D(filters=output_vector_size, kernel_size=self.kernel_size, activation='linear', padding='same',
                          name='decoder_embeddings', trainable=True)(decoder)
         decoder = Lambda(normalize_outputs, name='decoder_normalize')(decoder)
