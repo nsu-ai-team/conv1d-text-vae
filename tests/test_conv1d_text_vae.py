@@ -282,7 +282,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(self.text_vae, 'output_text_size_'))
         self.assertFalse(hasattr(self.text_vae, 'full_model_'))
         self.assertFalse(hasattr(self.text_vae, 'encoder_model_'))
-        self.assertFalse(hasattr(self.text_vae, 'decoder_model_'))
 
     def test_tokenize(self):
         tokenizer = DefaultTokenizer(special_symbols={'\n'})
@@ -816,7 +815,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'full_model_'))
         self.assertTrue(hasattr(res, 'encoder_model_'))
-        self.assertTrue(hasattr(res, 'decoder_model_'))
 
     def test_fit_positive02(self):
         self.text_vae.verbose = True
@@ -842,7 +840,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'full_model_'))
         self.assertTrue(hasattr(res, 'encoder_model_'))
-        self.assertTrue(hasattr(res, 'decoder_model_'))
 
     def test_fit_positive03(self):
         self.text_vae.verbose = True
@@ -850,6 +847,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         print('PRE-FITTING')
         res = self.text_vae.fit(self.input_texts)
         res.warm_start = True
+        print('')
         print('FINE-TUNING')
         res.fit(self.input_texts, self.target_texts)
         self.assertIsInstance(res, Conv1dTextVAE)
@@ -872,7 +870,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'full_model_'))
         self.assertTrue(hasattr(res, 'encoder_model_'))
-        self.assertTrue(hasattr(res, 'decoder_model_'))
 
     def test_fit_positive04(self):
         self.text_vae.verbose = True
@@ -880,6 +877,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         print('PRE-FITTING')
         res = self.text_vae.fit(self.target_texts)
         res.warm_start = True
+        print('')
         print('FINE-TUNING')
         res.fit(self.target_texts, self.input_texts)
         self.assertIsInstance(res, Conv1dTextVAE)
@@ -902,7 +900,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'full_model_'))
         self.assertTrue(hasattr(res, 'encoder_model_'))
-        self.assertTrue(hasattr(res, 'decoder_model_'))
 
     def test_fit_negative01(self):
         true_err_msg = re.escape('Length of `X` does not equal to length of `y`! {0} != {1}.'.format(
@@ -994,7 +991,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(res, 'output_text_size_'))
         self.assertFalse(hasattr(res, 'full_model_'))
         self.assertFalse(hasattr(res, 'encoder_model_'))
-        self.assertFalse(hasattr(res, 'decoder_model_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
@@ -1037,7 +1033,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'full_model_'))
         self.assertTrue(hasattr(res, 'encoder_model_'))
-        self.assertTrue(hasattr(res, 'decoder_model_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
