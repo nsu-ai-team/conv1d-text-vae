@@ -886,7 +886,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
         def vae_loss(y_true, y_pred):
             xent_loss = K.mean(K.sparse_categorical_crossentropy(y_true, y_pred), axis=-1)
-            kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
+            kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1) / K.cast(K.shape(y_pred)[-1],
+                                                                                                    dtype='float32')
             return K.mean(xent_loss - 0.5 * kl_loss)
 
         def vectors_to_onehot(args):
@@ -915,11 +916,22 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         decoder = Dense(self.hidden_layer_size, activation='relu', name='decoder_dense')\
             (Dropout(0.5, name='decoder_dropout')(z))
         decoder = BatchNormalization(name='decoder_batchnorm1')(decoder)
-        shape_for_decode = (self.output_text_size_, output_vector_size)
-        decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
-                        trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
-        decoder = BatchNormalization(name='decoder_batchnorm2')(decoder)
-        decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
+        if self.output_text_size_ < 4:
+            shape_for_decode = (self.output_text_size_, output_vector_size)
+            decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
+                            trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
+            decoder = BatchNormalization(name='decoder_batchnorm2')(decoder)
+            decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
+        else:
+            shape_for_decode = (self.output_text_size_ // 2, output_vector_size)
+            decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
+                            trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
+            decoder = BatchNormalization(name='decoder_batchnorm2')(decoder)
+            decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
+            decoder = UpSampling1D(size=2, name='decoder_upsampling')(decoder)
+            padding = self.output_text_size_ - shape_for_decode[0] * 2
+            if padding > 0:
+                decoder = ZeroPadding1D(padding=(0, padding), name='decoder_zeropadding')(decoder)
         decoder = Conv1DTranspose(decoder, filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                                   name='decoder', trainable=True)
         decoder = BatchNormalization(name='decoder_batchnorm3')(decoder)
@@ -940,7 +952,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 name='special_decoder_output_distributed'
             )(decoder)
             model_for_training = Model(encoder_input, special_output_layer, name='ModelForTraining')
-            model_for_training.compile(optimizer=RMSprop(), loss=vae_loss)
+            model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
             if self.verbose:
                 print('')
                 print(model_for_training.summary())
