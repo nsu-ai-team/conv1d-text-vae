@@ -898,9 +898,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             xent_loss = K.mean(K.sparse_categorical_crossentropy(
                 K.reshape(y_true, shape=(self.batch_size * self.output_text_size_,)),
                 K.reshape(y_pred, shape=(self.batch_size * self.output_text_size_, K.int_shape(y_pred)[2]))
-            )) * K.constant(float(self.output_text_size_ * output_vector_size))
+            )) * K.constant(float(self.output_text_size_ * K.int_shape(y_pred)[2]))
             kl_loss = K.constant(-0.5) * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-            return K.mean(xent_loss + kl_loss) / K.constant(float(self.output_text_size_ * output_vector_size))
+            return K.mean(xent_loss + kl_loss) / K.constant(float(self.output_text_size_ * K.int_shape(y_pred)[2]))
 
         def vectors_to_onehot(args):
             return K.softmax(100.0 * K.dot(args, output_wv_))
