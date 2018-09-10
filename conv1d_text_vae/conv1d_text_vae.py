@@ -7,7 +7,7 @@ from typing import List, Tuple, Union
 
 from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda
 from keras.layers import ZeroPadding1D, UpSampling1D, MaxPool1D
@@ -172,6 +172,13 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             del self.tokenizer
 
     def fit(self, X: Union[list, tuple, np.ndarray], y: Union[list, tuple, np.ndarray]=None):
+
+        def initialize_kl_weight(logs):
+            K.update(kl_weight, K.constant(0.0))
+
+        def update_kl_weight(epoch, logs):
+            K.update(kl_weight, kl_weight + kl_weight_delta)
+
         self.check_params(**self.get_params(deep=False))
         self.check_texts_param(X, 'X')
         if y is None:
@@ -228,7 +235,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if self.warm_start:
             all_weights = self.__dump_weights(self.encoder_model_)
             del self.full_model_, self.encoder_model_
-            self.encoder_model_, self.full_model_, model_for_training = self.__create_model(
+            self.encoder_model_, self.full_model_, model_for_training, kl_weight = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
                 output_wv=output_word_vectors, warm_start=True
             )
@@ -245,7 +252,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 self.input_text_size_ = max_text_size
             else:
                 self.input_text_size_ = self.input_text_size
-            self.encoder_model_, self.full_model_, model_for_training = self.__create_model(
+            self.encoder_model_, self.full_model_, model_for_training, kl_weight = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
                 output_wv=output_word_vectors
             )
@@ -262,8 +269,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             input_vocabulary=input_vocabulary, output_vocabulary=output_vocabulary,
             input_word_vectors=input_word_vectors
         )
+        kl_weight_delta = K.constant(value=(1.0 / float(self.max_epochs)), dtype=kl_weight.dtype,
+                                     name='kl_weight_delta')
         callbacks = [
-            EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0))
+            EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
+            LambdaCallback(on_train_begin=initialize_kl_weight, on_epoch_end=update_kl_weight)
         ]
         tmp_weights_name = self.get_temp_name()
         try:
@@ -273,7 +283,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             )
             model_for_training.fit_generator(
                 generator=training_set_generator,
-                epochs=self.max_epochs, verbose=False,
+                epochs=self.max_epochs,
+                verbose=(True if isinstance(self.verbose, int) and (self.verbose > 1) else False),
                 shuffle=True,
                 validation_data=evaluation_set_generator,
                 callbacks=callbacks
@@ -871,7 +882,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if is_fitted:
             self.input_text_size_ = state['input_text_size_']
             self.output_text_size_ = state['output_text_size_']
-            self.encoder_model_, self.full_model_, _ = self.__create_model(
+            self.encoder_model_, self.full_model_, _, _ = self.__create_model(
                 input_vector_size=self.calc_vector_size(
                     self.input_embeddings,
                     self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
@@ -884,7 +895,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.__load_weights(self.full_model_, state['weights_'])
 
     def __create_model(self, input_vector_size: int, output_vector_size: int, output_wv: np.ndarray=None,
-                       warm_start: bool=False) -> Tuple[Model, Model, Model]:
+                       warm_start: bool=False) -> Tuple[Model, Model, Model, Union[object, None]]:
 
         def sampling(args):
             z_mean_, z_log_var_ = args
@@ -899,9 +910,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             xent_loss = K.mean(K.sparse_categorical_crossentropy(
                 K.reshape(y_true, shape=(self.batch_size * self.output_text_size_,)),
                 K.reshape(y_pred, shape=(self.batch_size * self.output_text_size_, one_hot_vector_size))
-            )) * K.constant(float(self.output_text_size_))
+            ))
             kl_loss = K.constant(-0.5) * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-            return K.mean(xent_loss + kl_loss) / K.constant(float(self.output_text_size_))
+            return K.mean(xent_loss + kl_weight * kl_loss)
 
         def vectors_to_onehot(args):
             return K.softmax(100.0 * K.dot(args, output_wv_))
@@ -954,10 +965,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         full_model = Model(encoder_input, decoder, name='FullModel')
         if output_wv is None:
             model_for_training = None
+            kl_weight = None
             if self.verbose:
                 print('')
                 print(full_model.summary())
         else:
+            kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
             output_wv_ = K.variable(output_wv.transpose())
             special_output_layer = TimeDistributed(
                 Lambda(vectors_to_onehot, name='special_decoder_output'),
@@ -968,7 +981,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if self.verbose:
                 print('')
                 print(model_for_training.summary())
-        return encoder_model, full_model, model_for_training
+        return encoder_model, full_model, model_for_training, kl_weight
 
 
 class TextPairSequence(Sequence):
