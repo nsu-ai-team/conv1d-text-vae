@@ -10,7 +10,6 @@ import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, Dense, GlobalMaxPooling1D, Reshape, Dropout, Lambda
-from keras.layers import TimeDistributed
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.utils import Sequence
@@ -234,9 +233,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if self.warm_start:
             all_weights = self.__dump_weights(self.encoder_model_)
             del self.full_model_, self.encoder_model_
-            self.encoder_model_, self.full_model_, model_for_training, kl_weight = self.__create_model(
+            self.encoder_model_, self.full_model_, kl_weight = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
-                output_wv=output_word_vectors, warm_start=True
+                warm_start=True
             )
             self.__load_weights(self.encoder_model_, all_weights)
         else:
@@ -251,22 +250,20 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 self.input_text_size_ = max_text_size
             else:
                 self.input_text_size_ = self.input_text_size
-            self.encoder_model_, self.full_model_, model_for_training, kl_weight = self.__create_model(
-                input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
-                output_wv=output_word_vectors
+            self.encoder_model_, self.full_model_, kl_weight = self.__create_model(
+                input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1]
             )
-        del output_word_vectors
         training_set_generator = TextPairSequence(
             input_texts=input_texts[:len(X_train)], target_texts=target_texts[:len(y_train)], tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
             input_vocabulary=input_vocabulary, output_vocabulary=output_vocabulary,
-            input_word_vectors=input_word_vectors
+            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors
         )
         evaluation_set_generator = TextPairSequence(
             input_texts=input_texts[len(X_train):], target_texts=target_texts[len(y_train):], tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
             input_vocabulary=input_vocabulary, output_vocabulary=output_vocabulary,
-            input_word_vectors=input_word_vectors
+            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors
         )
         kl_weight_delta = K.constant(value=(1.0 / float(self.max_epochs)), dtype=kl_weight.dtype,
                                      name='kl_weight_delta')
@@ -280,7 +277,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 ModelCheckpoint(filepath=tmp_weights_name, verbose=(1 if self.verbose else 0), save_best_only=True,
                                 save_weights_only=True)
             )
-            model_for_training.fit_generator(
+            self.full_model_.fit_generator(
                 generator=training_set_generator,
                 epochs=self.max_epochs,
                 verbose=(True if isinstance(self.verbose, int) and (self.verbose > 1) else False),
@@ -289,7 +286,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 callbacks=callbacks
             )
             if os.path.isfile(tmp_weights_name):
-                model_for_training.load_weights(tmp_weights_name)
+                self.full_model_.load_weights(tmp_weights_name)
         finally:
             if os.path.isfile(tmp_weights_name):
                 os.remove(tmp_weights_name)
@@ -881,7 +878,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if is_fitted:
             self.input_text_size_ = state['input_text_size_']
             self.output_text_size_ = state['output_text_size_']
-            self.encoder_model_, self.full_model_, _, _ = self.__create_model(
+            self.encoder_model_, self.full_model_, _ = self.__create_model(
                 input_vector_size=self.calc_vector_size(
                     self.input_embeddings,
                     self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
@@ -893,8 +890,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             )
             self.__load_weights(self.full_model_, state['weights_'])
 
-    def __create_model(self, input_vector_size: int, output_vector_size: int, output_wv: np.ndarray=None,
-                       warm_start: bool=False) -> Tuple[Model, Model, Model, Union[object, None]]:
+    def __create_model(self, input_vector_size: int, output_vector_size: int,
+                       warm_start: bool=False) -> Tuple[Model, Model, Union[object, None]]:
 
         def sampling(args):
             z_mean_, z_log_var_ = args
@@ -905,16 +902,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.l2_normalize(x, axis=-1)
 
         def vae_loss(y_true, y_pred):
-            one_hot_vector_size = K.int_shape(y_pred)[2]
-            xent_loss = K.mean(K.sparse_categorical_crossentropy(
-                K.reshape(y_true, shape=(self.batch_size * self.output_text_size_,)),
-                K.reshape(y_pred, shape=(self.batch_size * self.output_text_size_, one_hot_vector_size))
-            ))
+            cosine_loss = -K.mean(y_true * y_pred)
             kl_loss = K.constant(-0.5) * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-            return K.mean(xent_loss + kl_weight * kl_loss)
-
-        def vectors_to_onehot(args):
-            return K.softmax(100.0 * K.dot(args, output_wv_))
+            return K.mean(cosine_loss + kl_weight * kl_loss)
 
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='tanh',
                             name: str="", trainable: bool=True):
@@ -945,28 +935,18 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         decoder = Lambda(normalize_outputs, name='decoder_normalize')(decoder)
         encoder_model = Model(encoder_input, z, name='EncoderModel')
         full_model = Model(encoder_input, decoder, name='FullModel')
-        if output_wv is None:
-            model_for_training = None
-            kl_weight = None
-            if self.verbose:
-                print('')
-                print(full_model.summary())
-        else:
-            kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
-            output_wv_ = K.constant(output_wv.transpose())
-            special_output_layer = Lambda(vectors_to_onehot, name='special_decoder_output')(decoder)
-            model_for_training = Model(encoder_input, special_output_layer, name='ModelForTraining')
-            model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
-            if self.verbose:
-                print('')
-                print(model_for_training.summary())
-        return encoder_model, full_model, model_for_training, kl_weight
+        kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
+        full_model.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
+        if self.verbose:
+            print('')
+            full_model.summary()
+        return encoder_model, full_model, kl_weight
 
 
 class TextPairSequence(Sequence):
     def __init__(self, tokenizer: BaseTokenizer, input_texts: Tuple[tuple], target_texts: Tuple[tuple], batch_size: int,
                  input_text_size: int, output_text_size: int, input_vocabulary: dict, input_word_vectors: np.ndarray,
-                 output_vocabulary: dict):
+                 output_vocabulary: dict, output_word_vectors: np.ndarray):
         self.tokenizer = tokenizer
         self.input_texts = input_texts
         self.target_texts = target_texts
@@ -978,6 +958,7 @@ class TextPairSequence(Sequence):
         self.input_vocabulary = input_vocabulary
         self.output_vocabulary = output_vocabulary
         self.input_word_vectors = input_word_vectors
+        self.output_word_vectors = output_word_vectors
 
     def __len__(self):
         return self.n_batches
@@ -986,8 +967,9 @@ class TextPairSequence(Sequence):
         start_pos = idx * self.batch_size
         end_pos = start_pos + self.batch_size
         input_vector_size = self.input_word_vectors.shape[1]
+        output_vector_size = self.output_word_vectors.shape[1]
         input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
-        target_data = np.zeros((self.batch_size, self.output_text_size), dtype=np.int32)
+        target_data = np.zeros((self.batch_size, self.output_text_size, output_vector_size), dtype=np.float32)
         idx_in_batch = 0
         for src_text_idx in range(start_pos, end_pos):
             prep_text_idx = src_text_idx
@@ -1006,6 +988,6 @@ class TextPairSequence(Sequence):
                     token = ''
                 else:
                     token = target_text[time_idx]
-                target_data[idx_in_batch, time_idx] = self.output_vocabulary[token]
+                target_data[idx_in_batch, time_idx] = self.output_word_vectors[self.output_vocabulary[token]]
             idx_in_batch += 1
         return input_data, target_data
