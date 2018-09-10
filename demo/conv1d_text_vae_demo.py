@@ -205,8 +205,8 @@ def main():
         ru_fasttext_model = load_russian_fasttext()
         en_fasttext_model = load_english_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=1024,
-                            latent_dim=100, hidden_layer_size=512, n_text_variants=3, max_epochs=50, verbose=True,
-                            batch_size=64)
+                            latent_dim=300, hidden_layer_size=2048, n_text_variants=3, max_epochs=50, verbose=True,
+                            batch_size=128)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print(u'')
         print(u'Training has been successfully finished.')
