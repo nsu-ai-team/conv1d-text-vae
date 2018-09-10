@@ -44,8 +44,8 @@ def load_text_pairs(file_name):
         while len(cur_line) > 0:
             prep_line = cur_line.strip()
             if len(prep_line) > 0:
-                err_msg = u'File "{0}": line {1} is wrong!'.format(file_name, line_idx)
-                line_parts = prep_line.split(u'\t')
+                err_msg = 'File "{0}": line {1} is wrong!'.format(file_name, line_idx)
+                line_parts = prep_line.split('\t')
                 assert len(line_parts) == 2, err_msg
                 new_input_text = line_parts[0].strip()
                 new_target_text = line_parts[1].strip()
@@ -65,7 +65,7 @@ def shuffle_text_pairs(*args):
     :return a 2-element tuple: the 1st contains list of left texts, the 2nd contains corresponding list of right texts.
 
     """
-    assert len(args) == 2, u'Text pairs (input and target texts) are specified incorrectly!'
+    assert len(args) == 2, 'Text pairs (input and target texts) are specified incorrectly!'
     indices = list(range(len(args[0])))
     random.shuffle(indices)
     input_texts = []
@@ -166,6 +166,9 @@ def main():
     parser.add_argument('-e', '--eval', dest='eval_data_name', type=str, required=False,
                         default=os.path.join(os.path.dirname(__file__), '..', 'data', 'eng_rus_for_testing.txt'),
                         help='The text file with parallel English-Russian corpus for evaluation (testing).')
+    parser.add_argument('--iter', dest='max_epochs', type=int, required=False, default=50,
+                        help='Maximal number of training epochs.')
+    parser.add_argument('--batch', dest='batch_size', type=int, required=False, default=128, help='Mini-batch size.')
     args = parser.parse_args()
 
     if args.model_name is None:
@@ -177,77 +180,83 @@ def main():
         else:
             model_dir_name = os.path.dirname(model_name)
             if len(model_dir_name) > 0:
-                assert os.path.isdir(model_dir_name), u'Directory "{0}" does not exist!'.format(model_dir_name)
+                assert os.path.isdir(model_dir_name), 'Directory "{0}" does not exist!'.format(model_dir_name)
     training_data_name = os.path.normpath(args.train_data_name)
-    assert os.path.isfile(training_data_name), u'File "{0}" does not exist!'.format(training_data_name)
+    assert os.path.isfile(training_data_name), 'File "{0}" does not exist!'.format(training_data_name)
     testing_data_name = os.path.normpath(args.eval_data_name)
-    assert os.path.isfile(testing_data_name), u'File "{0}" does not exist!'.format(testing_data_name)
+    assert os.path.isfile(testing_data_name), 'File "{0}" does not exist!'.format(testing_data_name)
+    max_epochs = args.max_epochs
+    assert max_epochs > 0, '{0} is wrong value of maximal epochs number! ' \
+                           'It must be a positive integer number.'.format(max_epochs)
+    minibatch_size = args.batch_size
+    assert minibatch_size > 0, '{0} is wrong value of minibatch size! ' \
+                               'It must be a positive integer number.'.format(minibatch_size)
 
     input_texts_for_training, target_texts_for_training = shuffle_text_pairs(
         *load_text_pairs(
             training_data_name
         )
     )
-    print(u'')
-    print(u'There are {0} text pairs in the training data.'.format(len(input_texts_for_training)))
-    print(u'Some samples of these text pairs:')
+    print('')
+    print('There are {0} text pairs in the training data.'.format(len(input_texts_for_training)))
+    print('Some samples of these text pairs:')
     for ind in range(10):
         input_text = input_texts_for_training[ind]
         target_text = target_texts_for_training[ind]
-        print(u'    ' + input_text + u'\t' + target_text)
-    print(u'')
+        print('    ' + input_text + '\t' + target_text)
+    print('')
 
     input_texts_for_testing, target_texts_for_testing = load_text_pairs(
         testing_data_name
     )
-    print(u'There are {0} text pairs in the testing data.'.format(len(input_texts_for_testing)))
-    print(u'Some samples of these text pairs:')
+    print('There are {0} text pairs in the testing data.'.format(len(input_texts_for_testing)))
+    print('Some samples of these text pairs:')
     indices = list(range(len(input_texts_for_testing)))
     random.shuffle(indices)
     for ind in indices[:10]:
         input_text = input_texts_for_testing[ind]
         target_text = target_texts_for_testing[ind]
-        print(u'    ' + input_text + u'\t' + target_text)
-    print(u'')
+        print('    ' + input_text + '\t' + target_text)
+    print('')
 
     if (model_name is not None) and os.path.isfile(model_name):
         with open(model_name, 'rb') as fp:
             vae = pickle.load(fp)
         assert isinstance(vae, Conv1dTextVAE), \
-            u'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
-        print(u'')
-        print(u'Model has been successfully loaded from file "{0}".'.format(model_name))
+            'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
+        print('')
+        print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
         ru_fasttext_model = load_russian_fasttext()
         en_fasttext_model = load_english_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=1024,
-                            latent_dim=300, hidden_layer_size=2048, n_text_variants=3, max_epochs=50, verbose=True,
-                            batch_size=128)
+                            kernel_size=3, latent_dim=300, hidden_layer_size=2048, n_text_variants=3,
+                            max_epochs=max_epochs, verbose=True, batch_size=minibatch_size)
         vae.fit(input_texts_for_training, target_texts_for_training)
-        print(u'')
-        print(u'Training has been successfully finished.')
+        print('')
+        print('Training has been successfully finished.')
         if model_name is not None:
             with open(model_name, 'wb') as fp:
                 pickle.dump(vae, fp, protocol=2)
-            print(u'Model has been successfully saved into file "{0}".'.format(model_name))
+            print('Model has been successfully saved into file "{0}".'.format(model_name))
 
     start_time = time.time()
     predicted_texts = vae.predict(input_texts_for_testing)
     end_time = time.time()
     sentence_correct, word_correct, character_correct = estimate(predicted_texts, target_texts_for_testing)
-    print(u'')
-    print(u'{0} texts have been predicted.'.format(len(predicted_texts)))
-    print(u'Some samples of predicted text pairs:')
+    print('')
+    print('{0} texts have been predicted.'.format(len(predicted_texts)))
+    print('Some samples of predicted text pairs:')
     for ind in indices[:10]:
         input_text = input_texts_for_testing[ind]
         target_text = predicted_texts[ind][0] if len(predicted_texts[ind]) > 0 else ''
-        print(u'    ' + input_text + u'\t' + target_text)
-    print(u'')
-    print(u'Total sentence correct is {0:.2%}.'.format(sentence_correct))
-    print(u'Total word correct is {0:.2%}.'.format(word_correct))
-    print(u'Total character correct is {0:.2%}.'.format(character_correct))
-    print(u'')
-    print(u'Mean time of sentence prediction is {0:.3} sec.'.format((end_time - start_time) / len(predicted_texts)))
+        print('    ' + input_text + '\t' + target_text)
+    print('')
+    print('Total sentence correct is {0:.2%}.'.format(sentence_correct))
+    print('Total word correct is {0:.2%}.'.format(word_correct))
+    print('Total character correct is {0:.2%}.'.format(character_correct))
+    print('')
+    print('Mean time of sentence prediction is {0:.3} sec.'.format((end_time - start_time) / len(predicted_texts)))
 
 
 if __name__ == '__main__':
