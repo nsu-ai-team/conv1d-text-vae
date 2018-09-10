@@ -169,6 +169,7 @@ def main():
     parser.add_argument('--iter', dest='max_epochs', type=int, required=False, default=50,
                         help='Maximal number of training epochs.')
     parser.add_argument('--batch', dest='batch_size', type=int, required=False, default=128, help='Mini-batch size.')
+    parser.add_argument('--verbose', dest='verbose', type=int, required=False, default=1, help='Verbose mode.')
     args = parser.parse_args()
 
     if args.model_name is None:
@@ -191,6 +192,8 @@ def main():
     minibatch_size = args.batch_size
     assert minibatch_size > 0, '{0} is wrong value of minibatch size! ' \
                                'It must be a positive integer number.'.format(minibatch_size)
+    verbose = args.verbose
+    assert verbose in {0, 1, 2}, '{0} is wrong value of verbose mode! It must be a 0, 1 or 2.'.format(verbose)
 
     input_texts_for_training, target_texts_for_training = shuffle_text_pairs(
         *load_text_pairs(
@@ -231,7 +234,7 @@ def main():
         en_fasttext_model = load_english_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=1024,
                             kernel_size=3, latent_dim=300, hidden_layer_size=2048, n_text_variants=3,
-                            max_epochs=max_epochs, verbose=True, batch_size=minibatch_size)
+                            max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
         print('Training has been successfully finished.')
