@@ -75,10 +75,12 @@ def load_text_pairs(file_name):
                 new_input_text = prepare_text(
                     re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_input_text).split()).strip())
                 )
+                new_input_text = re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_input_text).split()).strip())
                 new_target_text = line_parts[1].strip()
                 new_target_text = prepare_text(
                     re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_target_text).split()).strip())
                 )
+                new_target_text = re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_target_text).split()).strip())
                 assert (len(new_input_text) > 0) and (len(new_target_text) > 0), err_msg
                 input_texts.append(new_input_text)
                 target_texts.append(new_target_text)
