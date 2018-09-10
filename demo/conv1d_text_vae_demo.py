@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from argparse import ArgumentParser
 import codecs
 import copy
 import os
@@ -156,20 +157,35 @@ def calc_levenshtein_dist(left_list, right_list):
 
 
 def main():
-    if len(sys.argv) > 1:
-        model_name = os.path.normpath(sys.argv[1].strip())
+    parser = ArgumentParser()
+    parser.add_argument('-m', '--model', dest='model_name', type=str, required=False, default=None,
+                        help='The binary file with the VAE model.')
+    parser.add_argument('-t', '--train', dest='train_data_name', type=str, required=False,
+                        default=os.path.join(os.path.dirname(__file__), '..', 'data', 'eng_rus_for_training.txt'),
+                        help='The text file with parallel English-Russian corpus for training.')
+    parser.add_argument('-e', '--eval', dest='eval_data_name', type=str, required=False,
+                        default=os.path.join(os.path.dirname(__file__), '..', 'data', 'eng_rus_for_testing.txt'),
+                        help='The text file with parallel English-Russian corpus for evaluation (testing).')
+    args = parser.parse_args()
+
+    if args.model_name is None:
+        model_name = None
+    else:
+        model_name = os.path.normpath(args.model_name.strip())
         if len(model_name) == 0:
             model_name = None
         else:
             model_dir_name = os.path.dirname(model_name)
             if len(model_dir_name) > 0:
                 assert os.path.isdir(model_dir_name), u'Directory "{0}" does not exist!'.format(model_dir_name)
-    else:
-        model_name = None
+    training_data_name = os.path.normpath(args.train_data_name)
+    assert os.path.isfile(training_data_name), u'File "{0}" does not exist!'.format(training_data_name)
+    testing_data_name = os.path.normpath(args.eval_data_name)
+    assert os.path.isfile(testing_data_name), u'File "{0}" does not exist!'.format(testing_data_name)
 
     input_texts_for_training, target_texts_for_training = shuffle_text_pairs(
         *load_text_pairs(
-            os.path.join(os.path.dirname(__file__), '..', 'data', 'eng_rus_for_training.txt')
+            training_data_name
         )
     )
     print(u'')
@@ -182,7 +198,7 @@ def main():
     print(u'')
 
     input_texts_for_testing, target_texts_for_testing = load_text_pairs(
-        os.path.join(os.path.dirname(__file__), '..', 'data', 'eng_rus_for_testing.txt')
+        testing_data_name
     )
     print(u'There are {0} text pairs in the testing data.'.format(len(input_texts_for_testing)))
     print(u'Some samples of these text pairs:')
