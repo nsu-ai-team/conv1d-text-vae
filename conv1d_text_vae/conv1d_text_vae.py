@@ -934,7 +934,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         z_mean = Dense(self.latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
         z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
-        n = int(math.ceil(self.latent_dim / float(self.output_text_size_)))
+        n = int(math.ceil(self.hidden_layer_size / float(self.output_text_size_)))
         decoder = Dense(n * self.output_text_size_, activation='tanh', name='decoder_dense')(
             Dropout(0.5, name='decoder_dropout')(z))
         decoder = Reshape((self.output_text_size_, n), name='decoder_reshape')(decoder)
