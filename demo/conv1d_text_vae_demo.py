@@ -61,7 +61,7 @@ def load_text_pairs(file_name):
     special_unicode_characters = {'\u00A0', '\u2003', '\u2002', '\u2004', '\u2005', '\u2006', '\u2009', '\u200A',
                                   '\u0000', '\r', '\n', '\t'}
     re_for_space = re.compile('[' + ''.join(special_unicode_characters) + ']+', re.U)
-    re_for_dash = re.compile('[' + ''.join(['\u2012', '\u2013', '\u2014', '\u2015']) + ']+',  re.U)
+    re_for_dash = re.compile('[' + ''.join(['\u2011', '\u2012', '\u2013', '\u2014', '\u2015']) + ']+',  re.U)
     with codecs.open(file_name, mode='r', encoding='utf-8', errors='ignore') as fp:
         cur_line = fp.readline()
         while len(cur_line) > 0:
