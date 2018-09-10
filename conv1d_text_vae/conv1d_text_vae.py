@@ -953,7 +953,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print(full_model.summary())
         else:
             kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
-            output_wv_ = K.variable(output_wv.transpose())
+            output_wv_ = K.constant(output_wv.transpose())
             special_output_layer = TimeDistributed(
                 Lambda(vectors_to_onehot, name='special_decoder_output'),
                 name='special_decoder_output_distributed'
