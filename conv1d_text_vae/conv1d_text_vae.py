@@ -899,7 +899,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         def sampling(args):
             z_mean_, z_log_var_ = args
             epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], self.latent_dim), mean=0.0, stddev=1.0)
-            return z_mean_ + K.exp(z_log_var_ / 2) * epsilon
+            return z_mean_ + K.exp(z_log_var_) * epsilon
 
         def normalize_outputs(x):
             return K.l2_normalize(x, axis=-1)
