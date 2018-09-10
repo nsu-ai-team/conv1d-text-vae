@@ -52,7 +52,7 @@ def load_text_pairs(file_name):
             else:
                 prep = prep[:search_res.start()].strip() + ' ' + prep[search_res.end():].strip()
                 search_res = re_for_unicode.search(prep)
-        return prep.strip().replace('—', '-')
+        return prep.strip()
 
     input_texts = list()
     target_texts = list()
@@ -61,6 +61,7 @@ def load_text_pairs(file_name):
     special_unicode_characters = {'\u00A0', '\u2003', '\u2002', '\u2004', '\u2005', '\u2006', '\u2009', '\u200A',
                                   '\u0000', '\r', '\n', '\t'}
     re_for_space = re.compile('[' + ''.join(special_unicode_characters) + ']+', re.U)
+    re_for_dash = re.compile('[' + ''.join(['\u2012', '\u2013', '\u2014', '\u2015']) + ']+',  re.U)
     with codecs.open(file_name, mode='r', encoding='utf-8', errors='ignore') as fp:
         cur_line = fp.readline()
         while len(cur_line) > 0:
@@ -71,9 +72,13 @@ def load_text_pairs(file_name):
                 line_parts = prep_line.split('\t')
                 assert len(line_parts) == 2, err_msg
                 new_input_text = line_parts[0].strip()
-                new_input_text = prepare_text(' '.join(re_for_space.sub(' ', new_input_text).split()).strip())
+                new_input_text = prepare_text(
+                    re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_input_text).split()).strip())
+                )
                 new_target_text = line_parts[1].strip()
-                new_target_text = prepare_text(' '.join(re_for_space.sub(' ', new_target_text).split()).strip())
+                new_target_text = prepare_text(
+                    re_for_dash.sub('-', ' '.join(re_for_space.sub(' ', new_target_text).split()).strip())
+                )
                 assert (len(new_input_text) > 0) and (len(new_target_text) > 0), err_msg
                 input_texts.append(new_input_text)
                 target_texts.append(new_target_text)
