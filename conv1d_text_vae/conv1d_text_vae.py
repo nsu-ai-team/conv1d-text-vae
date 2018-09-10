@@ -902,7 +902,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.l2_normalize(x, axis=-1)
 
         def vae_loss(y_true, y_pred):
-            cosine_loss = -K.mean(y_true * y_pred)
+            cosine_loss = K.mean(1 - K.sum((y_true * y_pred), axis=-1))
             kl_loss = K.constant(-0.5) * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return K.mean(cosine_loss + kl_weight * kl_loss)
 
