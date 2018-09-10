@@ -52,7 +52,7 @@ def load_text_pairs(file_name):
             else:
                 prep = prep[:search_res.start()].strip() + ' ' + prep[search_res.end():].strip()
                 search_res = re_for_unicode.search(prep)
-        return prep.strip()
+        return prep.strip().replace('—', '-')
 
     input_texts = list()
     target_texts = list()
