@@ -42,7 +42,7 @@ def load_text_pairs(file_name):
     with codecs.open(file_name, mode='r', encoding='utf-8', errors='ignore') as fp:
         cur_line = fp.readline()
         while len(cur_line) > 0:
-            prep_line = cur_line.strip()
+            prep_line = cur_line.strip().replace('&quot;', '"')
             if len(prep_line) > 0:
                 err_msg = 'File "{0}": line {1} is wrong!'.format(file_name, line_idx)
                 line_parts = prep_line.split('\t')
