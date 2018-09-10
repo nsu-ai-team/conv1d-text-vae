@@ -9,8 +9,7 @@ from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 from keras import Input
-from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda
-from keras.layers import ZeroPadding1D, UpSampling1D, MaxPool1D
+from keras.layers import Conv1D, Conv2DTranspose, Dense, GlobalMaxPooling1D, RepeatVector, Dropout, Lambda
 from keras.layers import TimeDistributed
 from keras.models import Model
 from keras.optimizers import RMSprop
@@ -930,32 +929,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                               name='encoder_embeddings')
         encoder = Conv1D(filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                          padding='same', name='encoder_conv1d', trainable=(not warm_start))(encoder_input)
-        if self.input_text_size_ >= 4:
-            padding = self.input_text_size_ % 2
-            if padding > 0:
-                encoder = ZeroPadding1D(padding=(0, padding), name='encoder_zeropadding')(encoder)
-            encoder = MaxPool1D(pool_size=2, name='encoder_maxpool')(encoder)
         encoder = Dense(self.hidden_layer_size, activation='relu', name='encoder_dense', trainable=(not warm_start))(
-            Dropout(0.5, name='encoder_dropout')(Flatten(name='encoder_flatten')(encoder)))
+            Dropout(0.5, name='encoder_dropout')(GlobalMaxPooling1D(name='encoder_globalpool')(encoder)))
         z_mean = Dense(self.latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
         z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
-        decoder = Dense(self.hidden_layer_size, activation='relu', name='decoder_dense')\
-            (Dropout(0.5, name='decoder_dropout')(z))
-        if self.output_text_size_ < 4:
-            shape_for_decode = (self.output_text_size_, self.n_filters)
-            decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
-                            trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
-            decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
-        else:
-            shape_for_decode = (self.output_text_size_ // 2, self.n_filters)
-            decoder = Dense(np.prod(shape_for_decode), activation='relu', name='decoder_dense_2',
-                            trainable=True)(Dropout(0.5, name='decoder_dropout_2')(decoder))
-            decoder = Reshape(shape_for_decode, name='decoder_reshape')(decoder)
-            decoder = UpSampling1D(size=2, name='decoder_upsampling')(decoder)
-            padding = self.output_text_size_ - shape_for_decode[0] * 2
-            if padding > 0:
-                decoder = ZeroPadding1D(padding=(0, padding), name='decoder_zeropadding')(decoder)
+        decoder = Dense(self.hidden_layer_size, activation='relu', name='decoder_dense')(
+            Dropout(0.5, name='decoder_dropout')(z))
+        decoder = RepeatVector(self.output_text_size_, name='decoder_repeat')(decoder)
         decoder = Conv1DTranspose(decoder, filters=self.n_filters, kernel_size=self.kernel_size, activation='relu',
                                   name='decoder', trainable=True)
         decoder = Conv1D(filters=output_vector_size, kernel_size=self.kernel_size, activation='linear', padding='same',
