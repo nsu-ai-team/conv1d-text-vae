@@ -6,6 +6,7 @@ import codecs
 import copy
 import os
 import pickle
+import re
 import sys
 import time
 import random
@@ -36,19 +37,43 @@ def load_text_pairs(file_name):
     :return a 2-element tuple: the 1st contains list of left texts, the 2nd contains corresponding list of right texts.
 
     """
+
+    def prepare_text(src: str) -> str:
+        search_res  = re_for_unicode.search(src)
+        if search_res is None:
+            return src
+        if (search_res.start() < 0) or (search_res.end() < 0):
+            return src
+        prep = src[:search_res.start()].strip() + ' ' + src[search_res.end():].strip()
+        search_res = re_for_unicode.search(prep)
+        while search_res is not None:
+            if (search_res.start() < 0) or (search_res.end() < 0):
+                search_res = None
+            else:
+                prep = prep[:search_res.start()].strip() + ' ' + prep[search_res.end():].strip()
+                search_res = re_for_unicode.search(prep)
+        return prep.strip()
+
     input_texts = list()
     target_texts = list()
     line_idx = 1
+    re_for_unicode = re.compile(r'&#\d+;')
+    special_unicode_characters = {'\u00A0', '\u2003', '\u2002', '\u2004', '\u2005', '\u2006', '\u2009', '\u200A',
+                                  '\u0000', '\r', '\n', '\t'}
+    re_for_space = re.compile('[' + ''.join(special_unicode_characters) + ']+', re.U)
     with codecs.open(file_name, mode='r', encoding='utf-8', errors='ignore') as fp:
         cur_line = fp.readline()
         while len(cur_line) > 0:
-            prep_line = cur_line.strip().replace('&quot;', '"')
+            prep_line = cur_line.strip().replace('&quot;', '"').replace('&apos;', "'").replace('&gt;', '>').replace(
+                '&lt;', '<').replace('&amp;', '&')
             if len(prep_line) > 0:
                 err_msg = 'File "{0}": line {1} is wrong!'.format(file_name, line_idx)
                 line_parts = prep_line.split('\t')
                 assert len(line_parts) == 2, err_msg
                 new_input_text = line_parts[0].strip()
+                new_input_text = prepare_text(' '.join(re_for_space.sub(' ', new_input_text).split()).strip())
                 new_target_text = line_parts[1].strip()
+                new_target_text = prepare_text(' '.join(re_for_space.sub(' ', new_target_text).split()).strip())
                 assert (len(new_input_text) > 0) and (len(new_target_text) > 0), err_msg
                 input_texts.append(new_input_text)
                 target_texts.append(new_target_text)
