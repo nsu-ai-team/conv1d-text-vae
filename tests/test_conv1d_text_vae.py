@@ -1001,8 +1001,9 @@ class TestConv1dTextVAE(unittest.TestCase):
     def test_predict_positive01(self):
         batch_size = 3
         while (len(self.input_texts) % batch_size) == 0:
-            batch_size += 1
+            batch_size +=                                                                1
         self.text_vae.batch_size = batch_size
+        self.text_vae.verbose = True
         res = self.text_vae.fit_predict(self.input_texts, self.target_texts)
         self.assertIsInstance(res, list)
         self.assertEqual(len(self.input_texts), len(res))

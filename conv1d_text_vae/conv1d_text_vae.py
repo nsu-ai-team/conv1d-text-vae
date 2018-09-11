@@ -1,8 +1,9 @@
 import copy
-import os
 import math
+import os
 import re
 import tempfile
+import time
 from typing import List, Tuple, Union
 
 from gensim.models.keyedvectors import FastTextKeyedVectors
@@ -339,6 +340,10 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             special_symbols = None
         n_all_texts = len(X)
         start_pos = 0
+        n_data_parts = 20
+        data_part_size = max(int(round(len(X) / n_data_parts)), 1)
+        data_part_counter = 0
+        start_time = time.time()
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
                                                  self.input_embeddings, special_symbols):
             outputs_for_batch = self.full_model_.predict(data_for_batch)
@@ -360,7 +365,18 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     generated_texts.append(tuple(self.find_best_texts(words_of_text, self.n_text_variants)))
                 else:
                     generated_texts.append(tuple([]))
+                if ((start_pos + sample_idx + 1) % data_part_size) == 0:
+                    data_part_counter += 1
+                    end_time = time.time()
+                    if self.verbose:
+                        print('{0}% of texts have been processed in {1:.3f} seconds...'.format(
+                            data_part_counter * (100 // n_data_parts), end_time - start_time))
+                    start_time = end_time
             start_pos += outputs_for_batch.shape[0]
+        if data_part_counter < n_data_parts:
+            end_time = time.time()
+            if self.verbose:
+                print('100% of texts have been processed in {0:.3f} seconds...'.format(end_time - start_time))
         return (np.array(generated_texts, dtype=object) if isinstance(X, np.ndarray) else (
             tuple(generated_texts) if isinstance(X, tuple) else generated_texts))
 
@@ -902,7 +918,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.l2_normalize(x, axis=-1)
 
         def vae_loss(y_true, y_pred):
-            cosine_loss = K.mean(1 - K.sum((y_true * y_pred), axis=-1))
+            cosine_loss = K.mean(1.0 - K.sum((y_true * y_pred), axis=-1))
             kl_loss = K.constant(-0.5) * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return K.mean(cosine_loss + kl_weight * kl_loss)
 
@@ -938,7 +954,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
         full_model.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
         if self.verbose:
-            print('')
             full_model.summary()
         return encoder_model, full_model, kl_weight
 
