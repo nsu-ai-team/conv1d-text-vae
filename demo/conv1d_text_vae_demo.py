@@ -264,8 +264,8 @@ def main():
     else:
         ru_fasttext_model = load_russian_fasttext()
         en_fasttext_model = load_english_fasttext()
-        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=1024,
-                            kernel_size=3, latent_dim=300, hidden_layer_size=2048, n_text_variants=3,
+        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=512,
+                            kernel_size=3, latent_dim=300, hidden_layer_size=1024, n_recurrent_units=128,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
