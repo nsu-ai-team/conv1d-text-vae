@@ -10,7 +10,7 @@ from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 from keras import Input
-from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda, GRU
+from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda, CuDNNGRU
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.utils import Sequence
@@ -441,10 +441,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     target_seq[text_idx, 0, indices_of_sampled_tokens[text_idx]] = 1.0
             for text_idx in range(n_texts_in_batch):
                 generated_texts.append(''.join(decoded_sentences[text_idx]))
-                if ((text_idx + start_pos + 1) % data_part_size) == 0:
-                    data_part_counter += 1
-                    if isinstance(self.verbose, int) and (self.verbose > 1):
-                        print('{0}% of texts are processed...'.format(data_part_counter * (100 // n_data_parts)))
+                if data_part_size > 0:
+                    if ((text_idx + start_pos + 1) % data_part_size) == 0:
+                        data_part_counter += 1
+                        if isinstance(self.verbose, int) and (self.verbose > 1):
+                            print('{0}% of texts are processed...'.format(data_part_counter * (100 // n_data_parts)))
             start_pos += data_for_batch.shape[0]
             del data_for_batch
         if data_part_counter < n_data_parts:
@@ -1048,13 +1049,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                 padding='same', name='deconv_decoder_embeddings', trainable=True)(deconv_decoder)
         deconv_decoder = Lambda(normalize_outputs, name='deconv_decoder_normalize')(deconv_decoder)
         deconv_decoder_model = Model(deconv_decoder_input, deconv_decoder, name='DecoderForVAE')
-        _, seq2seq_encoder_state = GRU(
-            self.n_recurrent_units, return_sequences=False, return_state=True, dropout=0.5, recurrent_dropout=0.3,
-            name='seq2seq_encoder_gru'
+        _, seq2seq_encoder_state = CuDNNGRU(
+            self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
         )(deconv_decoder_model(z_mean))
         seq2seq_decoder_input = Input(shape=(None, len(self.target_char_index_)), name='seq2seq_decoder_input')
-        seq2seq_decoder_gru = GRU(self.n_recurrent_units, return_sequences=True, return_state=True,
-                                  name='seq2seq_decoder_gru', dropout=0.5, recurrent_dropout=0.3)
+        seq2seq_decoder_gru = CuDNNGRU(self.n_recurrent_units, return_sequences=True, return_state=True,
+                                       name='seq2seq_decoder_gru')
         seq2seq_decoder, _ = seq2seq_decoder_gru(seq2seq_decoder_input, initial_state=seq2seq_encoder_state)
         seq2seq_decoder_dense = Dense(len(self.target_char_index_), activation='softmax', name='seq2seq_decoder_dense')
         seq2seq_decoder = seq2seq_decoder_dense(seq2seq_decoder)
