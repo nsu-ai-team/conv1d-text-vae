@@ -441,7 +441,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     target_seq[text_idx, 0, indices_of_sampled_tokens[text_idx]] = 1.0
             for text_idx in range(n_texts_in_batch):
                 generated_texts.append(''.join(decoded_sentences[text_idx]))
-                if (text_idx+ start_pos + 1) % data_part_size == 0:
+                if ((text_idx + start_pos + 1) % data_part_size) == 0:
                     data_part_counter += 1
                     if isinstance(self.verbose, int) and (self.verbose > 1):
                         print('{0}% of texts are processed...'.format(data_part_counter * (100 // n_data_parts)))
