@@ -1047,7 +1047,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         deconv_decoder = Conv1D(filters=output_vector_size, kernel_size=self.kernel_size, activation='linear',
                                 padding='same', name='deconv_decoder_embeddings', trainable=True)(deconv_decoder)
         deconv_decoder = Lambda(normalize_outputs, name='deconv_decoder_normalize')(deconv_decoder)
-        deconv_decoder_model = Model(deconv_decoder_input, deconv_decoder)
+        deconv_decoder_model = Model(deconv_decoder_input, deconv_decoder, name='DecoderForVAE')
         _, seq2seq_encoder_state = GRU(
             self.n_recurrent_units, return_sequences=False, return_state=True, dropout=0.5, recurrent_dropout=0.3,
             name='seq2seq_encoder_gru'
@@ -1058,16 +1058,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         seq2seq_decoder, _ = seq2seq_decoder_gru(seq2seq_decoder_input, initial_state=seq2seq_encoder_state)
         seq2seq_decoder_dense = Dense(len(self.target_char_index_), activation='softmax', name='seq2seq_decoder_dense')
         seq2seq_decoder = seq2seq_decoder_dense(seq2seq_decoder)
-        vae_encoder_model = Model(encoder_input, z_mean, name='EncoderModel')
-        generator_encoder_model = Model(encoder_input, seq2seq_encoder_state)
+        vae_encoder_model = Model(encoder_input, z_mean, name='EncoderForVAE')
+        generator_encoder_model = Model(encoder_input, seq2seq_encoder_state, name='EncoderForGenerator')
         seq2seq_state_input = Input(shape=(self.n_recurrent_units,))
         seq2seq_decoder_output, seq2seq_decoder_state = seq2seq_decoder_gru(
             seq2seq_decoder_input, initial_state=seq2seq_state_input)
         seq2seq_decoder_output = seq2seq_decoder_dense(seq2seq_decoder_output)
         generator_decoder_model = Model([seq2seq_decoder_input, seq2seq_state_input],
-                                        [seq2seq_decoder_output, seq2seq_decoder_state])
-        vae_model_for_training = Model(encoder_input, deconv_decoder_model(z))
-        seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder)
+                                        [seq2seq_decoder_output, seq2seq_decoder_state], name='DecoderForGenerator')
+        vae_model_for_training = Model(encoder_input, deconv_decoder_model(z), name='VAE_for_training')
+        seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
+                                           name='seq2seq_for_training')
         kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
         vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
         if self.verbose:
