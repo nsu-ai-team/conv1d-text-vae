@@ -310,7 +310,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             evaluation_set_generator.for_vae = True
             if self.verbose:
                 print('')
+                print('----------------------------------------')
                 print('VAE training...')
+                print('----------------------------------------')
                 print('')
             vae_model_for_training.fit_generator(
                 generator=training_set_generator,
@@ -336,7 +338,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             ]
             if self.verbose:
                 print('')
+                print('----------------------------------------')
                 print('Seq2Seq training...')
+                print('----------------------------------------')
                 print('')
             seq2seq_model_for_training.fit_generator(
                 generator=training_set_generator,
@@ -401,6 +405,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             special_symbols = None
         n_all_texts = len(X)
         start_pos = 0
+        n_data_parts = 20
+        data_part_size = len(X) // n_data_parts
+        data_part_counter = 0
+        if isinstance(self.verbose, int) and (self.verbose > 1):
+            print('Prediction of texts with the VAE is started...')
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
                                                  self.input_embeddings, special_symbols):
             state_value = self.generator_encoder_.predict(data_for_batch)
@@ -432,8 +441,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                     target_seq[text_idx, 0, indices_of_sampled_tokens[text_idx]] = 1.0
             for text_idx in range(n_texts_in_batch):
                 generated_texts.append(''.join(decoded_sentences[text_idx]))
+                if (text_idx+ start_pos + 1) % data_part_size == 0:
+                    data_part_counter += 1
+                    if isinstance(self.verbose, int) and (self.verbose > 1):
+                        print('{0}% of texts are processed...'.format(data_part_counter * (100 // n_data_parts)))
             start_pos += data_for_batch.shape[0]
             del data_for_batch
+        if data_part_counter < n_data_parts:
+            if isinstance(self.verbose, int) and (self.verbose > 1):
+                print('100% of texts are processed...')
+        if isinstance(self.verbose, int) and (self.verbose > 1):
+            print('Prediction of texts with the VAE is finished...')
         return (np.array(generated_texts, dtype=object) if isinstance(X, np.ndarray) else (
             tuple(generated_texts) if isinstance(X, tuple) else generated_texts))
 
@@ -1052,13 +1070,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder)
         kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
         vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
-        # seq2seq_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss='categorical_crossentropy')
         if self.verbose:
             print('')
-            print('Variational autoencoder:')
+            print('VARIATIONAL AUTOENCODER:')
             vae_model_for_training.summary()
             print('')
-            print('Sequence-to-sequence:')
+            print('SEQUENCE-TO-SEQUENCE:')
             seq2seq_model_for_training.summary()
         return vae_encoder_model, generator_encoder_model, generator_decoder_model, vae_model_for_training, \
                seq2seq_model_for_training, kl_weight
