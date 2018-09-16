@@ -11,6 +11,7 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, BatchNormalization, Dropout, Dense
 from keras.layers import CuDNNGRU, Flatten, Reshape, Lambda, Cropping1D
+from keras.engine.topology import Layer
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.utils import Sequence
@@ -990,7 +991,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.__load_weights(self.generator_encoder_, state['weights_']['encoder'])
             self.__load_weights(self.generator_decoder_, state['weights_']['decoder'])
 
-    def __create_model(self, input_vector_size: int, output_vector_size: int,
+    def __create_model(self, input_vector_size: int, output_vector_size: int, output_vectors: np.ndarray=None,
                        warm_start: bool=False) -> Tuple[Model, Model, Model, Model, Model]:
 
         def sampling(args):
@@ -1002,9 +1003,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.l2_normalize(x, axis=-1)
 
         def vae_loss(y_true, y_pred):
-            cosine_loss = K.mean(1.0 - K.sum((y_true * y_pred), axis=-1))
+            xent_loss = K.mean(K.sparse_categorical_crossentropy(target=y_true, output=y_pred, axis=-1), axis=-1)
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-            return cosine_loss - kl_loss
+            return xent_loss - kl_loss
 
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='tanh',
                             name: str = "", trainable: bool = True):
@@ -1014,6 +1015,13 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                 name=name + '_deconv1d_part2', trainable=trainable)(x)
             x = Lambda(lambda x: K.squeeze(x, axis=2), name=name + '_deconv1d_part3')(x)
             return x
+
+        class LayerForReconstruction(Layer):
+            def call(self, inputs, **kwargs):
+                return K.softmax(100.0 * K.dot(inputs, weights_of_layer_for_reconstruction), axis=-1)
+
+            def compute_output_shape(self, input_shape):
+                return (input_shape[0], input_shape[1], K.shape(weights_of_layer_for_reconstruction)[0])
 
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
@@ -1086,17 +1094,27 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         seq2seq_decoder_output = seq2seq_decoder_dense(seq2seq_decoder_output)
         generator_decoder_model = Model([seq2seq_decoder_input, seq2seq_state_input],
                                         [seq2seq_decoder_output, seq2seq_decoder_state], name='DecoderForGenerator')
-        vae_model_for_training = Model(encoder_input, deconv_decoder_model(z), name='VAE_for_training')
-        seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
-                                           name='seq2seq_for_training')
-        vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
-        if self.verbose:
-            print('')
-            print('VARIATIONAL AUTOENCODER:')
-            vae_model_for_training.summary()
-            print('')
-            print('SEQUENCE-TO-SEQUENCE:')
-            seq2seq_model_for_training.summary()
+        if output_vectors is None:
+            vae_model_for_training = None
+            seq2seq_model_for_training = None
+        else:
+            weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
+            reconstuctor = LayerForReconstruction()(deconv_decoder)
+            reconstuctor_model = Model(deconv_decoder_input, reconstuctor, name='ReconstructorForVAE')
+            vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
+            seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
+                                               name='seq2seq_for_training')
+            vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
+            if self.verbose:
+                print('')
+                print('ENCODER:')
+                vae_encoder_model.summary()
+                print('')
+                print('DECODER:')
+                deconv_decoder_model.summary()
+                print('')
+                print('SEQUENCE-TO-SEQUENCE:')
+                seq2seq_model_for_training.summary()
         return vae_encoder_model, generator_encoder_model, generator_decoder_model, vae_model_for_training, \
                seq2seq_model_for_training
 
@@ -1130,9 +1148,9 @@ class TextPairSequence(Sequence):
         start_pos = idx * self.batch_size
         end_pos = start_pos + self.batch_size
         input_vector_size = self.input_word_vectors.shape[1]
-        output_vector_size = self.output_word_vectors.shape[1]
         input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
-        target_data = np.zeros((self.batch_size, self.output_text_size, output_vector_size), dtype=np.float32)
+        target_data = np.full((self.batch_size, self.output_text_size),
+                              fill_value=self.output_word_vectors.shape[1] - 1, dtype=np.int32)
         generator_input_data = np.zeros(
             (self.batch_size, self.output_text_size_in_characters, len(self.output_char_index)),
             dtype=np.float32
@@ -1159,7 +1177,7 @@ class TextPairSequence(Sequence):
                     token = ''
                 else:
                     token = target_text[time_idx]
-                target_data[idx_in_batch, time_idx] = self.output_word_vectors[self.output_vocabulary[token]]
+                target_data[idx_in_batch, time_idx] = self.output_vocabulary[token]
             target_text_in_characters = self.target_texts_in_characters[prep_text_idx]
             generator_input_data[idx_in_batch, 0, self.output_char_index[Conv1dTextVAE.SEQUENCE_BEGIN]] = 1.0
             T = len(target_text_in_characters)
