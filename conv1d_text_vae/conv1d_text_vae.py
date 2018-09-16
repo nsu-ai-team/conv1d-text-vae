@@ -680,7 +680,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             for idx in range(len(params['n_filters'])):
                 if params['n_filters'][idx] <= 0:
                     raise ValueError('Item {0} of the parameter `n_filters` is wrong! Expected a positive value, '
-                                     'but {1} is not positive.'.format(idx, params['n_filters']))
+                                     'but {1} is not positive.'.format(idx, params['n_filters'][idx]))
         if 'kernel_size' not in params:
             raise ValueError('The parameter `kernel_size` is not defined!')
         if not isinstance(params['kernel_size'], int):
@@ -995,7 +995,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
         def sampling(args):
             z_mean_, z_log_var_ = args
-            epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], self.latent_dim), mean=0.0, stddev=1.0)
+            epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], n_latent_dim), mean=0.0, stddev=1.0)
             return z_mean_ + K.exp(z_log_var_) * epsilon
 
         def normalize_outputs(x):
