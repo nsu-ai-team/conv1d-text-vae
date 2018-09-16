@@ -249,7 +249,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
             seq2seq_model_for_training = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
-                warm_start=True
+                warm_start=True, output_vectors=output_word_vectors
             )
             self.__load_weights(self.vae_encoder_, all_weights)
         else:
@@ -266,7 +266,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 self.input_text_size_ = self.input_text_size
             self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
             seq2seq_model_for_training = self.__create_model(
-                input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1]
+                input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
+                output_vectors=output_word_vectors
             )
         training_set_generator = TextPairSequence(
             input_texts=input_texts[:len(X_train)], target_texts=target_texts[:len(y_train)], tokenizer=self.tokenizer,
