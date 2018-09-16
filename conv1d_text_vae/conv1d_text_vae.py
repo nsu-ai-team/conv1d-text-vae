@@ -1042,7 +1042,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         z_log_var = Dense(n_latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
         deconv_decoder_input = Input(shape=(n_latent_dim,), dtype='float32', name='deconv_decoder_input')
-        deconv_decoder = Reshape((n_times_of_decoder, self.latent_dim), name='deconv_decoder_reshape')
+        deconv_decoder = Reshape((n_times_of_decoder, self.latent_dim), name='deconv_decoder_reshape')(
+            deconv_decoder_input)
         n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[-1]
         deconv_decoder = Conv1DTranspose(deconv_decoder, filters=n_filters, kernel_size=self.kernel_size,
                                          activation='elu', name='deconv_decoder_1', trainable=True, padding='valid')
