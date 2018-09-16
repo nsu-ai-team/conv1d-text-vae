@@ -89,6 +89,32 @@ def load_text_pairs(file_name):
     return input_texts, target_texts
 
 
+def filter_text_pairs(text_pairs: tuple, max_left_length: int, max_right_length: int):
+    assert len(text_pairs) == 2, 'Text pairs (input and target texts) are specified incorrectly!'
+    n_pairs = len(text_pairs[0])
+    if n_pairs < 1:
+        return text_pairs
+    if (max_left_length <= 0) or (max_right_length <= 0):
+        left_lengths = np.zeros((n_pairs,), dtype=np.int32)
+        right_lengths = np.zeros((n_pairs,), dtype=np.int32)
+        for idx in range(n_pairs):
+            left_lengths[idx] = len(text_pairs[0][idx])
+            right_lengths[idx] = len(text_pairs[1][idx])
+        np.sort(left_lengths)
+        np.sort(right_lengths)
+        max_left_length = left_lengths[int(round(float(n_pairs - 1) * 0.9))]
+        max_right_length = right_lengths[int(round(float(n_pairs - 1) * 0.9))]
+    input_texts = []
+    target_texts = []
+    for idx in range(n_pairs):
+        n_left = len(text_pairs[0][idx])
+        n_right = len(text_pairs[1][idx])
+        if (n_left <= max_left_length) and (n_right <= max_right_length) and (n_left > 0) and (n_right > 0):
+            input_texts.append(text_pairs[0][idx])
+            target_texts.append(text_pairs[1][idx])
+    return input_texts, target_texts
+
+
 def shuffle_text_pairs(*args):
     """ Shuffle elements in lists containing left and right texts for text pairs.
 
@@ -227,9 +253,14 @@ def main():
     verbose = args.verbose
     assert verbose in {0, 1, 2}, '{0} is wrong value of verbose mode! It must be a 0, 1 or 2.'.format(verbose)
 
+    n_chars_left = 0
+    n_chars_right = 0
     input_texts_for_training, target_texts_for_training = shuffle_text_pairs(
-        *load_text_pairs(
-            training_data_name
+        *filter_text_pairs(
+            load_text_pairs(
+                training_data_name
+            ),
+            n_chars_left, n_chars_right
         )
     )
     print('')
@@ -241,8 +272,11 @@ def main():
         print('    ' + input_text + '\t' + target_text)
     print('')
 
-    input_texts_for_testing, target_texts_for_testing = load_text_pairs(
-        testing_data_name
+    input_texts_for_testing, target_texts_for_testing = filter_text_pairs(
+        load_text_pairs(
+            testing_data_name
+        ),
+        n_chars_left, n_chars_right
     )
     print('There are {0} text pairs in the testing data.'.format(len(input_texts_for_testing)))
     print('Some samples of these text pairs:')
@@ -264,8 +298,8 @@ def main():
     else:
         ru_fasttext_model = load_russian_fasttext()
         en_fasttext_model = load_english_fasttext()
-        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, n_filters=1024,
-                            kernel_size=3, latent_dim=500, hidden_layer_size=2048, n_recurrent_units=256,
+        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
+                            n_filters=(512, 1024, 2048), kernel_size=3, latent_dim=10, n_recurrent_units=512,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')

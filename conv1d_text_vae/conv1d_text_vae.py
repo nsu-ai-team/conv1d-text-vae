@@ -3,14 +3,14 @@ import math
 import os
 import re
 import tempfile
-import time
 from typing import List, Tuple, Union
 
 from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
-from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import Input
-from keras.layers import Conv1D, Conv2DTranspose, Dense, Flatten, Reshape, Dropout, Lambda, CuDNNGRU
+from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, BatchNormalization, Dropout, Dense
+from keras.layers import CuDNNGRU, Flatten, Reshape, Lambda, Cropping1D
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.utils import Sequence
@@ -139,13 +139,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     SEQUENCE_END = '<EOS>'
 
     def __init__(self, input_embeddings: FastTextKeyedVectors, output_embeddings: FastTextKeyedVectors,
-                 tokenizer: BaseTokenizer=None, n_filters: int=128, kernel_size: int=3, hidden_layer_size: int=128,
-                 latent_dim: int=50, n_recurrent_units: int=128, input_text_size: int=None, output_text_size: int=None,
-                 batch_size: int=64, max_epochs: int=100, validation_fraction: float=0.2, warm_start: bool=False,
-                 verbose: bool=False):
+                 tokenizer: BaseTokenizer=None, n_filters: Union[int, tuple]=128, kernel_size: int=3, latent_dim: int=5,
+                 n_recurrent_units: int=128, input_text_size: int=None, output_text_size: int=None, batch_size: int=64,
+                 max_epochs: int=100, validation_fraction: float=0.2, warm_start: bool=False, verbose: bool=False):
         self.n_filters = n_filters
         self.kernel_size = kernel_size
-        self.hidden_layer_size = hidden_layer_size
         self.input_embeddings = input_embeddings
         self.output_embeddings = output_embeddings
         self.batch_size = batch_size
@@ -176,13 +174,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             del self.tokenizer
 
     def fit(self, X: Union[list, tuple, np.ndarray], y: Union[list, tuple, np.ndarray]=None):
-
-        def initialize_kl_weight(logs):
-            K.update(kl_weight, K.constant(0.0))
-
-        def update_kl_weight(epoch, logs):
-            K.update(kl_weight, kl_weight + kl_weight_delta)
-
         self.check_params(**self.get_params(deep=False))
         self.check_texts_param(X, 'X')
         if y is None:
@@ -255,7 +246,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             all_weights = self.__dump_weights(self.vae_encoder_)
             del self.vae_encoder_, self.generator_encoder_, self.generator_decoder_
             self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
-            seq2seq_model_for_training, kl_weight = self.__create_model(
+            seq2seq_model_for_training = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
                 warm_start=True
             )
@@ -273,7 +264,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             else:
                 self.input_text_size_ = self.input_text_size
             self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
-            seq2seq_model_for_training, kl_weight = self.__create_model(
+            seq2seq_model_for_training = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1]
             )
         training_set_generator = TextPairSequence(
@@ -294,11 +285,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             output_char_index=self.target_char_index_,
             target_texts_in_characters=target_texts_by_characters[len(y_train):]
         )
-        kl_weight_delta = K.constant(value=(1.0 / float(self.max_epochs)), dtype=kl_weight.dtype,
-                                     name='kl_weight_delta')
         callbacks = [
-            EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
-            LambdaCallback(on_train_begin=initialize_kl_weight, on_epoch_end=update_kl_weight)
+            EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0))
         ]
         tmp_weights_name = self.get_temp_name()
         try:
@@ -464,9 +452,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def get_params(self, deep=True):
         return {
-            'n_filters': self.n_filters,
+            'n_filters': copy.copy(self.n_filters) if deep else self.n_filters,
             'kernel_size': self.kernel_size,
-            'hidden_layer_size': self.hidden_layer_size,
             'input_embeddings': (Conv1dTextVAE.copy_embeddings(self.input_embeddings) if deep
                                  else self.input_embeddings),
             'output_embeddings': (Conv1dTextVAE.copy_embeddings(self.output_embeddings) if deep
@@ -486,7 +473,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     def set_params(self, **params):
         self.n_filters = params['n_filters']
         self.kernel_size = params['kernel_size']
-        self.hidden_layer_size = params['hidden_layer_size']
         self.input_embeddings = params['input_embeddings']
         self.output_embeddings = params['output_embeddings']
         self.batch_size = params['batch_size']
@@ -681,12 +667,20 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                  'but {0} is not positive.'.format(params['output_text_size']))
         if 'n_filters' not in params:
             raise ValueError('The parameter `n_filters` is not defined!')
-        if not isinstance(params['n_filters'], int):
-            raise ValueError('The parameter `n_filters` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(10), type(params['n_filters'])))
-        if params['n_filters'] <= 0:
-            raise ValueError('The parameter `n_filters` is wrong! Expected a positive value, '
-                             'but {0} is not positive.'.format(params['n_filters']))
+        if not isinstance(params['n_filters'], int) and (not isinstance(params['n_filters'], tuple)):
+            raise ValueError('The parameter `n_filters` is wrong! Expected `{0}` or `{1}`, got `{2}`.'.format(
+                type(10), type((1, 2)), type(params['n_filters'])))
+        if isinstance(params['n_filters'], int):
+            if params['n_filters'] <= 0:
+                raise ValueError('The parameter `n_filters` is wrong! Expected a positive value, '
+                                 'but {0} is not positive.'.format(params['n_filters']))
+        else:
+            if len(params['n_filters']) < 1:
+                raise ValueError('The parameter `n_filters` is wrong! Expected a nonempty sequence of integers.')
+            for idx in range(len(params['n_filters'])):
+                if params['n_filters'][idx] <= 0:
+                    raise ValueError('Item {0} of the parameter `n_filters` is wrong! Expected a positive value, '
+                                     'but {1} is not positive.'.format(idx, params['n_filters']))
         if 'kernel_size' not in params:
             raise ValueError('The parameter `kernel_size` is not defined!')
         if not isinstance(params['kernel_size'], int):
@@ -695,14 +689,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if params['kernel_size'] <= 0:
             raise ValueError('The parameter `kernel_size` is wrong! Expected a positive value, '
                              'but {0} is not positive.'.format(params['kernel_size']))
-        if 'hidden_layer_size' not in params:
-            raise ValueError('The parameter `hidden_layer_size` is not defined!')
-        if not isinstance(params['hidden_layer_size'], int):
-            raise ValueError('The parameter `hidden_layer_size` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(10), type(params['hidden_layer_size'])))
-        if params['hidden_layer_size'] <= 0:
-            raise ValueError('The parameter `hidden_layer_size` is wrong! Expected a positive value, '
-                             'but {0} is not positive.'.format(params['hidden_layer_size']))
         if 'n_recurrent_units' not in params:
             raise ValueError('The parameter `n_recurrent_units` is not defined!')
         if not isinstance(params['n_recurrent_units'], int):
@@ -991,7 +977,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.output_text_size_in_characters_ = state['output_text_size_in_characters_']
             self.target_char_index_ = copy.deepcopy(state['target_char_index_'])
             self.reverse_target_char_index_ = copy.deepcopy(state['reverse_target_char_index_'])
-            self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, _, _, _ = self.__create_model(
+            self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, _, _ = self.__create_model(
                 input_vector_size=self.calc_vector_size(
                     self.input_embeddings,
                     self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
@@ -1005,7 +991,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.__load_weights(self.generator_decoder_, state['weights_']['decoder'])
 
     def __create_model(self, input_vector_size: int, output_vector_size: int,
-                       warm_start: bool=False) -> Tuple[Model, Model, Model, Model, Model, Union[object, None]]:
+                       warm_start: bool=False) -> Tuple[Model, Model, Model, Model, Model]:
 
         def sampling(args):
             z_mean_, z_log_var_ = args
@@ -1018,7 +1004,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         def vae_loss(y_true, y_pred):
             cosine_loss = K.mean(1.0 - K.sum((y_true * y_pred), axis=-1))
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-            return K.mean(cosine_loss - kl_weight * kl_loss)
+            return cosine_loss - kl_loss
 
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='tanh',
                             name: str = "", trainable: bool = True):
@@ -1031,20 +1017,53 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
-        encoder = Conv1D(filters=self.n_filters, kernel_size=self.kernel_size, activation='tanh',
-                         padding='same', name='encoder_conv1d', trainable=(not warm_start))(encoder_input)
-        encoder = Dense(self.hidden_layer_size, activation='tanh', name='encoder_dense', trainable=(not warm_start))(
-            Dropout(0.5, name='encoder_dropout')(Flatten(name='encoder_flatten')(encoder)))
-        z_mean = Dense(self.latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
-        z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
+        n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[0]
+        encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='elu',
+                         padding='valid', name='encoder_conv1d_1', trainable=(not warm_start))(encoder_input)
+        encoder = BatchNormalization(name='encoder_batchnorm_1')(encoder)
+        encoder = MaxPool1D(pool_size=2, name='encoder_pool1d_1')(encoder)
+        if isinstance(self.n_filters, tuple):
+            layer_counter = 2
+            for n_filters in self.n_filters[1:]:
+                encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='elu',
+                                 padding='valid', name='encoder_conv1d_{0}'.format(layer_counter),
+                                 trainable=(not warm_start))(encoder)
+                encoder = BatchNormalization(name='encoder_batchnorm_{0}'.format(layer_counter))(encoder)
+                encoder = MaxPool1D(pool_size=2, name='encoder_pool1d_{0}'.format(layer_counter))(encoder)
+                layer_counter += 1
+        encoder = Flatten(name='encoder_flatten')(encoder)
+        encoder = Dropout(0.3, name='encoder_dropout')(encoder)
+        n_times_of_decoder = int(math.ceil((self.output_text_size_ - self.kernel_size + 1) / 2.0))
+        if isinstance(self.n_filters, tuple):
+            for _ in range(len(self.n_filters) - 1):
+                n_times_of_decoder = int(math.ceil((n_times_of_decoder - self.kernel_size + 1) / 2.0))
+        n_latent_dim = self.latent_dim * n_times_of_decoder
+        z_mean = Dense(n_latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
+        z_log_var = Dense(n_latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
         z = Lambda(sampling, name='z')([z_mean, z_log_var])
-        n = max(int(math.ceil(self.hidden_layer_size / float(self.output_text_size_))), self.n_filters // 5, 5)
-        deconv_decoder_input = Input(shape=(self.latent_dim,), dtype='float32', name='deconv_decoder_input')
-        deconv_decoder = Dense(n * self.output_text_size_, activation='tanh', name='deconv_decoder_dense')(
-            Dropout(0.5, name='deconv_decoder_dropout')(deconv_decoder_input))
-        deconv_decoder = Reshape((self.output_text_size_, n), name='deconv_decoder_reshape')(deconv_decoder)
-        deconv_decoder = Conv1DTranspose(deconv_decoder, filters=self.n_filters, kernel_size=self.kernel_size,
-                                         activation='tanh', name='deconv_decoder', trainable=True)
+        deconv_decoder_input = Input(shape=(n_latent_dim,), dtype='float32', name='deconv_decoder_input')
+        deconv_decoder = Reshape((n_times_of_decoder, self.latent_dim), name='deconv_decoder_reshape')
+        n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[-1]
+        deconv_decoder = Conv1DTranspose(deconv_decoder, filters=n_filters, kernel_size=self.kernel_size,
+                                         activation='elu', name='deconv_decoder_1', trainable=True, padding='valid')
+        deconv_decoder = BatchNormalization(name='deconv_decoder_batchnorm_1')(deconv_decoder)
+        deconv_decoder = UpSampling1D(size=2, name='deconv_decoder_upsampling_1')(deconv_decoder)
+        if isinstance(self.n_filters, tuple):
+            layer_counter = 2
+            idx = list(range(len(self.n_filters) - 1))
+            idx.reverse()
+            for n_filters in map(lambda it: self.n_filters[it], idx):
+                deconv_decoder = Conv1DTranspose(deconv_decoder, n_filters, kernel_size=self.kernel_size,
+                                                 activation='elu', name='deconv_decoder_{0}'.format(layer_counter),
+                                                 trainable=True, padding='valid')
+                deconv_decoder = BatchNormalization(name='deconv_decoder_batchnorm_{0}'.format(layer_counter))(
+                    deconv_decoder)
+                deconv_decoder = UpSampling1D(size=2, name='deconv_decoder_upsampling_{0}'.format(layer_counter))(
+                    deconv_decoder)
+                layer_counter += 1
+        cropping_size = K.int_shape(deconv_decoder)[1] - self.output_text_size_
+        if cropping_size > 0:
+            deconv_decoder = Cropping1D(cropping=(0, cropping_size), name='deconv_decoder_cropping')(deconv_decoder)
         deconv_decoder = Conv1D(filters=output_vector_size, kernel_size=self.kernel_size, activation='linear',
                                 padding='same', name='deconv_decoder_embeddings', trainable=True)(deconv_decoder)
         deconv_decoder = Lambda(normalize_outputs, name='deconv_decoder_normalize')(deconv_decoder)
@@ -1069,7 +1088,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         vae_model_for_training = Model(encoder_input, deconv_decoder_model(z), name='VAE_for_training')
         seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
                                            name='seq2seq_for_training')
-        kl_weight = K.variable(value=0.0, dtype='float32', name='kl_weight')
         vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
         if self.verbose:
             print('')
@@ -1079,7 +1097,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             print('SEQUENCE-TO-SEQUENCE:')
             seq2seq_model_for_training.summary()
         return vae_encoder_model, generator_encoder_model, generator_decoder_model, vae_model_for_training, \
-               seq2seq_model_for_training, kl_weight
+               seq2seq_model_for_training
 
 
 class TextPairSequence(Sequence):

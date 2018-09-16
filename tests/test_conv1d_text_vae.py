@@ -533,7 +533,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(self.text_vae, Conv1dTextVAE)
         self.assertTrue(hasattr(self.text_vae, 'n_filters'))
         self.assertTrue(hasattr(self.text_vae, 'kernel_size'))
-        self.assertTrue(hasattr(self.text_vae, 'hidden_layer_size'))
         self.assertTrue(hasattr(self.text_vae, 'input_embeddings'))
         self.assertTrue(hasattr(self.text_vae, 'output_embeddings'))
         self.assertTrue(hasattr(self.text_vae, 'batch_size'))
@@ -825,8 +824,8 @@ class TestConv1dTextVAE(unittest.TestCase):
     def test_check_params_negative28(self):
         params = self.text_vae.__dict__
         params['n_filters'] = 4.5
-        true_err_msg = re.escape('The parameter `n_filters` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(10), type(4.5)))
+        true_err_msg = re.escape('The parameter `n_filters` is wrong! Expected `{0}` or `{1}`, got `{2}`.'.format(
+            type(10), type((1, 2)), type(4.5)))
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
@@ -840,12 +839,20 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     def test_check_params_negative30(self):
         params = self.text_vae.__dict__
+        params['n_filters'] = (10, -3)
+        true_err_msg = re.escape('Item 1 of the parameter `n_filters` is wrong! Expected a positive value, '
+                                 'but -3 is not positive.')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative31(self):
+        params = self.text_vae.__dict__
         del params['kernel_size']
         true_err_msg = re.escape('The parameter `kernel_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative31(self):
+    def test_check_params_negative32(self):
         params = self.text_vae.__dict__
         params['kernel_size'] = 4.5
         true_err_msg = re.escape('The parameter `kernel_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -853,7 +860,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative32(self):
+    def test_check_params_negative33(self):
         params = self.text_vae.__dict__
         params['kernel_size'] = -3
         true_err_msg = re.escape('The parameter `kernel_size` is wrong! Expected a positive value, '
@@ -861,37 +868,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative33(self):
-        params = self.text_vae.__dict__
-        del params['hidden_layer_size']
-        true_err_msg = re.escape('The parameter `hidden_layer_size` is not defined!')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
     def test_check_params_negative34(self):
-        params = self.text_vae.__dict__
-        params['hidden_layer_size'] = 4.5
-        true_err_msg = re.escape('The parameter `hidden_layer_size` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(10), type(4.5)))
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative35(self):
-        params = self.text_vae.__dict__
-        params['hidden_layer_size'] = -3
-        true_err_msg = re.escape('The parameter `hidden_layer_size` is wrong! Expected a positive value, '
-                                 'but -3 is not positive.')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative36(self):
         params = self.text_vae.__dict__
         del params['validation_fraction']
         true_err_msg = re.escape('The parameter `validation_fraction` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative37(self):
+    def test_check_params_negative35(self):
         params = self.text_vae.__dict__
         params['validation_fraction'] = '1.5'
         true_err_msg = re.escape('The parameter `validation_fraction` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -899,7 +883,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative38(self):
+    def test_check_params_negative36(self):
         params = self.text_vae.__dict__
         params['validation_fraction'] = -0.1
         true_err_msg = re.escape('The parameter `validation_fraction` is wrong! Expected a positive value between 0.0 '
@@ -1096,7 +1080,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1125,7 +1108,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1159,7 +1141,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1193,7 +1174,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1285,7 +1265,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsNot(res, self.text_vae)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1308,7 +1287,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
-        self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
         self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
         self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
@@ -1331,7 +1309,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsNot(res, self.text_vae)
         self.assertTrue(hasattr(res, 'n_filters'))
         self.assertTrue(hasattr(res, 'kernel_size'))
-        self.assertTrue(hasattr(res, 'hidden_layer_size'))
         self.assertTrue(hasattr(res, 'input_embeddings'))
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
@@ -1354,7 +1331,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
-        self.assertEqual(res.hidden_layer_size, self.text_vae.hidden_layer_size)
         self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
         self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
