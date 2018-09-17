@@ -997,7 +997,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
         def sampling(args):
             z_mean_, z_log_var_ = args
-            epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], n_latent_dim), mean=0.0, stddev=1.0)
+            epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], self.latent_dim), mean=0.0, stddev=1.0)
             return z_mean_ + K.exp(z_log_var_) * epsilon
 
         def normalize_outputs(x):
@@ -1042,17 +1042,18 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 layer_counter += 1
         encoder = Flatten(name='encoder_flatten')(encoder)
         encoder = Dropout(0.3, name='encoder_dropout')(encoder)
+        z_mean = Dense(self.latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
+        z_log_var = Dense(self.latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
+        z = Lambda(sampling, name='z')([z_mean, z_log_var])
         n_times_of_decoder = int(math.ceil((self.output_text_size_ - self.kernel_size + 1) / 2.0))
         if isinstance(self.n_filters, tuple):
             for _ in range(len(self.n_filters) - 1):
                 n_times_of_decoder = int(math.ceil((n_times_of_decoder - self.kernel_size + 1) / 2.0))
-        n_latent_dim = self.latent_dim * n_times_of_decoder
-        z_mean = Dense(n_latent_dim, name='z_mean', trainable=(not warm_start))(encoder)
-        z_log_var = Dense(n_latent_dim, name='z_log_var', trainable=(not warm_start))(encoder)
-        z = Lambda(sampling, name='z')([z_mean, z_log_var])
-        deconv_decoder_input = Input(shape=(n_latent_dim,), dtype='float32', name='deconv_decoder_input')
-        deconv_decoder = Reshape((n_times_of_decoder, self.latent_dim), name='deconv_decoder_reshape')(
-            deconv_decoder_input)
+        width = max(int(math.ceil(self.latent_dim) / float(n_times_of_decoder)), 5)
+        deconv_decoder_input = Input(shape=(self.latent_dim,), dtype='float32', name='deconv_decoder_input')
+        deconv_decoder = Dense(n_times_of_decoder * width, activation='elu', name='deconv_decoder_dense')(
+            Dropout(0.3, name='deconv_decoder_dropout')(deconv_decoder_input))
+        deconv_decoder = Reshape((n_times_of_decoder, width), name='deconv_decoder_reshape')(deconv_decoder)
         n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[-1]
         deconv_decoder = Conv1DTranspose(deconv_decoder, filters=n_filters, kernel_size=self.kernel_size,
                                          activation='elu', name='deconv_decoder_1', trainable=True, padding='valid')
@@ -1100,7 +1101,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             seq2seq_model_for_training = None
         else:
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
-            reconstuctor = LayerForReconstruction()(deconv_decoder)
+            reconstuctor = LayerForReconstruction(trainable=False)(deconv_decoder)
             reconstuctor_model = Model(deconv_decoder_input, reconstuctor, name='ReconstructorForVAE')
             vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
             seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,

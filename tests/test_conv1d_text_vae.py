@@ -280,7 +280,6 @@ class TextTextPairSequence(unittest.TestCase):
                     text_idx += 1
 
     def test_positive03(self):
-        EPS = 1e-5
         src_data = [
             'как определить тип личности по форме носа: метод аристотеля',
             'какие преступления вдохновили достоевского',
@@ -351,12 +350,12 @@ class TextTextPairSequence(unittest.TestCase):
                     self.assertGreaterEqual(generated_data[1][sample_idx][token_idx], 0,
                                             msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                     if token_idx < n_tokens:
-                        self.assertLess(generated_data[1][sample_idx][token_idx], self.fasttext_model.vector_size + 1,
+                        self.assertLess(generated_data[1][sample_idx][token_idx], vocabulary[''],
                                         msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                     else:
                         self.assertEqual(
                             generated_data[1][sample_idx][token_idx],
-                            self.fasttext_model.vector_size + 1,
+                            vocabulary[''],
                             msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                         )
                 if text_idx < (len(input_texts) - 1):
@@ -456,19 +455,19 @@ class TextTextPairSequence(unittest.TestCase):
                         if tokens[token_idx] in special_symbols:
                             self.assertEqual(
                                 generated_data[1][sample_idx][token_idx],
-                                self.fasttext_model.vector_size + special_symbols.index(tokens[token_idx]),
+                                vocabulary[tokens[token_idx]],
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                         else:
                             self.assertLess(
                                 generated_data[1][sample_idx][token_idx],
-                                self.fasttext_model.vector_size,
+                                len(vocabulary) - len(special_symbols) - 1,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                     else:
                         self.assertEqual(
                             generated_data[1][sample_idx][token_idx],
-                            self.fasttext_model.vector_size + 3,
+                            len(vocabulary) - 1,
                             msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                         )
                 if text_idx < (len(input_texts) - 1):
@@ -1204,7 +1203,8 @@ class TestConv1dTextVAE(unittest.TestCase):
     def test_transform_positive01(self):
         res = self.text_vae.fit_transform(self.input_texts, self.target_texts)
         self.assertIsInstance(res, np.ndarray)
-        self.assertEqual(res.shape, (len(self.input_texts), self.text_vae.latent_dim))
+        self.assertEqual(res.shape[0], len(self.input_texts))
+        self.assertEqual(res.shape[1], self.text_vae.latent_dim)
 
     def test_transform_negative01(self):
         with self.assertRaises(NotFittedError):

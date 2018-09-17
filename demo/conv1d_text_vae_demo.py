@@ -299,7 +299,7 @@ def main():
         ru_fasttext_model = load_russian_fasttext()
         en_fasttext_model = load_english_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
-                            n_filters=(256, 512, 1024), kernel_size=3, latent_dim=10, n_recurrent_units=512,
+                            n_filters=(256, 512, 1024), kernel_size=3, latent_dim=500, n_recurrent_units=512,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
