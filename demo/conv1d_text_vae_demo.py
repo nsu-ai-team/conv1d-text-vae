@@ -102,8 +102,8 @@ def filter_text_pairs(text_pairs: tuple, max_left_length: int, max_right_length:
             right_lengths[idx] = len(text_pairs[1][idx])
         left_lengths = np.sort(left_lengths)
         right_lengths = np.sort(right_lengths)
-        max_left_length = left_lengths[int(round(float(n_pairs - 1) * 0.95))]
-        max_right_length = right_lengths[int(round(float(n_pairs - 1) * 0.95))]
+        max_left_length = left_lengths[int(round(float(n_pairs - 1) * 0.9))]
+        max_right_length = right_lengths[int(round(float(n_pairs - 1) * 0.9))]
     input_texts = []
     target_texts = []
     for idx in range(n_pairs):
