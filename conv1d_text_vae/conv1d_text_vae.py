@@ -1049,7 +1049,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if isinstance(self.n_filters, tuple):
             for _ in range(len(self.n_filters) - 1):
                 n_times_of_decoder = int(math.ceil((n_times_of_decoder - self.kernel_size + 1) / 2.0))
-        width = max(int(math.ceil(self.latent_dim) / float(n_times_of_decoder)), 5)
+        width = max(10, int(math.ceil(self.latent_dim / float(n_times_of_decoder))))
         deconv_decoder_input = Input(shape=(self.latent_dim,), dtype='float32', name='deconv_decoder_input')
         deconv_decoder = Dense(n_times_of_decoder * width, activation='elu', name='deconv_decoder_dense')(
             Dropout(0.3, name='deconv_decoder_dropout')(deconv_decoder_input))
