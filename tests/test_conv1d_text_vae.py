@@ -238,19 +238,19 @@ class TextTextPairSequence(unittest.TestCase):
                         )
                         if tokens[token_idx] in special_symbols:
                             self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size +
+                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
                                                                             special_symbols.index(tokens[token_idx])],
                                 1.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                         else:
                             self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size],
+                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
                                 0.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                             self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
                                 0.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
@@ -426,19 +426,19 @@ class TextTextPairSequence(unittest.TestCase):
                         )
                         if tokens[token_idx] in special_symbols:
                             self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size +
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
                                                                          special_symbols.index(tokens[token_idx])],
                                 1.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                         else:
                             self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size],
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
                                 0.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                             self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
                                 0.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
@@ -461,13 +461,13 @@ class TextTextPairSequence(unittest.TestCase):
                         else:
                             self.assertLess(
                                 generated_data[1][sample_idx][token_idx],
-                                len(vocabulary) - len(special_symbols) - 1,
+                                vocabulary[''] - len(special_symbols),
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                     else:
                         self.assertEqual(
                             generated_data[1][sample_idx][token_idx],
-                            len(vocabulary) - 1,
+                            vocabulary[''],
                             msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                         )
                 if text_idx < (len(input_texts) - 1):
@@ -524,6 +524,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(self.text_vae, 'max_epochs'))
         self.assertTrue(hasattr(self.text_vae, 'latent_dim'))
         self.assertTrue(hasattr(self.text_vae, 'n_recurrent_units'))
+        self.assertTrue(hasattr(self.text_vae, 'use_batch_norm'))
         self.assertTrue(hasattr(self.text_vae, 'warm_start'))
         self.assertTrue(hasattr(self.text_vae, 'verbose'))
         self.assertTrue(hasattr(self.text_vae, 'input_text_size'))
@@ -563,10 +564,10 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(calc_vocabulary, dict)
         self.assertEqual(true_words_in_vocabulary, set(calc_vocabulary.keys()))
         self.assertEqual(calc_vocabulary[''], len(true_words_in_vocabulary) - 1)
-        for cur_word in true_words_in_vocabulary:
+        for cur_word in true_words_in_vocabulary - {''}:
             self.assertIn(cur_word, calc_vocabulary)
             self.assertGreaterEqual(calc_vocabulary[cur_word], 0)
-            self.assertLess(calc_vocabulary[cur_word], len(true_words_in_vocabulary))
+            self.assertLess(calc_vocabulary[cur_word], len(true_words_in_vocabulary) - 1)
         self.assertIsInstance(calc_word_vectors, np.ndarray)
         self.assertEqual((len(true_words_in_vocabulary), true_vector_size), calc_word_vectors.shape)
         special_word_indices = {len(true_words_in_vocabulary) - 1, calc_vocabulary['!']}
@@ -575,11 +576,38 @@ class TestConv1dTextVAE(unittest.TestCase):
             self.assertAlmostEqual(vector_norm, 1.0, places=4)
             if word_idx not in special_word_indices:
                 self.assertAlmostEqual(calc_word_vectors[word_idx, true_vector_size - 1], 0.0)
-                self.assertAlmostEqual(calc_word_vectors[word_idx, true_vector_size - 3], 0.0)
-                self.assertTrue((abs(calc_word_vectors[word_idx, true_vector_size - 2]) < eps) or \
-                                (abs(calc_word_vectors[word_idx, true_vector_size - 2] - 1.0) < eps))
+                self.assertAlmostEqual(calc_word_vectors[word_idx, true_vector_size - 2], 0.0)
+                self.assertTrue((abs(calc_word_vectors[word_idx, true_vector_size - 3]) < eps) or \
+                                (abs(calc_word_vectors[word_idx, true_vector_size - 3] - 1.0) < eps))
         self.assertAlmostEqual(calc_word_vectors[len(true_words_in_vocabulary) - 1, true_vector_size - 1], 1.0)
-        self.assertAlmostEqual(calc_word_vectors[calc_vocabulary['!'], true_vector_size - 3], 1.0)
+        self.assertAlmostEqual(calc_word_vectors[calc_vocabulary['!'], true_vector_size - 2], 1.0)
+
+    def test_get_vocabulary_and_word_vectors_from_fasttext(self):
+        input_texts = (
+            ('мама', 'мыла', 'раму'),
+            ('папа', 'мыл', 'синхрофазотрон', '!'),
+            ('а', 'дочка', 'мыла', 'свой', 'ноутбук', 'от', 'коньяка')
+        )
+        true_words_in_vocabulary = {'мама', 'мыла', 'раму', 'папа', 'мыл', 'синхрофазотрон', '!', 'а', 'дочка', 'мыла',
+                                    'свой', 'ноутбук', 'от', 'коньяка', ''}
+        true_vector_size = self.ru_fasttext_model.vector_size
+        special_symbols = ('мама',)
+        calc_vocabulary, calc_word_vectors = Conv1dTextVAE.get_vocabulary_and_word_vectors_from_fasttext(
+            input_texts, self.ru_fasttext_model, special_symbols)
+        self.assertIsInstance(calc_vocabulary, dict)
+        self.assertLess(set(calc_vocabulary.keys()), true_words_in_vocabulary)
+        self.assertFalse(special_symbols[0] in calc_vocabulary)
+        self.assertIsInstance(calc_word_vectors, np.ndarray)
+        self.assertEqual((len(calc_vocabulary), true_vector_size), calc_word_vectors.shape)
+        used_indices = set()
+        for cur_word in calc_vocabulary:
+            idx = calc_vocabulary[cur_word]
+            self.assertGreaterEqual(idx, 0)
+            self.assertLess(idx, calc_word_vectors.shape[0])
+            self.assertFalse(idx in used_indices)
+            used_indices.add(idx)
+            vector_norm = np.linalg.norm(calc_word_vectors[idx])
+            self.assertAlmostEqual(vector_norm, 1.0, places=4)
 
     def test_check_texts_param_negative01(self):
         true_err_msg = re.escape('The parameter `X` is wrong! Expected `{0}`, `{1}` or 1-D `{2}`, got `{3}`.'.format(
@@ -876,6 +904,36 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
+    def test_check_params_negative37(self):
+        params = self.text_vae.__dict__
+        del params['use_batch_norm']
+        true_err_msg = re.escape('The parameter `use_batch_norm` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative38(self):
+        params = self.text_vae.__dict__
+        del params['output_onehot_size']
+        true_err_msg = re.escape('The parameter `output_onehot_size` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative39(self):
+        params = self.text_vae.__dict__
+        params['output_onehot_size'] = 4.5
+        true_err_msg = re.escape('The parameter `output_onehot_size` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(10), type(4.5)))
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative40(self):
+        params = self.text_vae.__dict__
+        params['output_onehot_size'] = -3
+        true_err_msg = re.escape('The parameter `output_onehot_size` is wrong! Expected a positive value, '
+                                 'but -3 is not positive.')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
     def test_float_to_string_positive01(self):
         value = 3.567
         true_res = '3.567'
@@ -1071,6 +1129,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
@@ -1088,6 +1147,7 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     def test_fit_positive02(self):
         self.text_vae.verbose = 2
+        self.text_vae.output_onehot_size = 5
         res = self.text_vae.fit(self.input_texts)
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertIsInstance(res, Conv1dTextVAE)
@@ -1099,6 +1159,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
@@ -1132,6 +1193,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
@@ -1165,6 +1227,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
@@ -1223,9 +1286,10 @@ class TestConv1dTextVAE(unittest.TestCase):
         while (len(self.input_texts) % batch_size) == 0:
             batch_size += 1
         self.text_vae.batch_size = batch_size
-        res = self.text_vae.fit_predict(self.input_texts, self.target_texts)
+        self.text_vae.max_epochs *= 2
+        res = self.text_vae.fit_predict(self.input_texts + self.input_texts, self.target_texts + self.target_texts)
         self.assertIsInstance(res, list)
-        self.assertEqual(len(self.input_texts), len(res))
+        self.assertEqual(2 * len(self.input_texts), len(res))
         for idx in range(len(res)):
             self.assertIsInstance(res[idx], str)
             self.assertGreater(len(res[idx].strip()), 0)
@@ -1257,6 +1321,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
@@ -1301,6 +1366,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'max_epochs'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
         self.assertTrue(hasattr(res, 'input_text_size'))
