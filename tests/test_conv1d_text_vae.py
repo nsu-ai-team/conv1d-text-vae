@@ -528,6 +528,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(self.text_vae, 'use_batch_norm'))
         self.assertTrue(hasattr(self.text_vae, 'warm_start'))
         self.assertTrue(hasattr(self.text_vae, 'verbose'))
+        self.assertTrue(hasattr(self.text_vae, 'use_attention'))
         self.assertTrue(hasattr(self.text_vae, 'input_text_size'))
         self.assertTrue(hasattr(self.text_vae, 'output_text_size'))
         self.assertTrue(hasattr(self.text_vae, 'validation_fraction'))
@@ -957,6 +958,21 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
+    def test_check_params_negative44(self):
+        params = self.text_vae.__dict__
+        del params['use_attention']
+        true_err_msg = re.escape('The parameter `use_attention` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative45(self):
+        params = self.text_vae.__dict__
+        params['use_attention'] = 0.5
+        true_err_msg = re.escape('The parameter `use_attention` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(True), type(0.5)))
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
     def test_float_to_string_positive01(self):
         value = 3.567
         true_res = '3.567'
@@ -1142,6 +1158,7 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     def test_fit_positive01(self):
         self.text_vae.verbose = 2
+        self.text_vae.use_attention = False
         res = self.text_vae.fit(self.input_texts, self.target_texts)
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertTrue(hasattr(res, 'n_filters'))
@@ -1156,6 +1173,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1187,6 +1205,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1222,6 +1241,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1257,6 +1277,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1352,6 +1373,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1369,6 +1391,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
         self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
+        self.assertEqual(res.use_attention, self.text_vae.use_attention)
+        self.assertEqual(res.use_batch_norm, self.text_vae.use_batch_norm)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)
         self.assertEqual(res.n_recurrent_units, self.text_vae.n_recurrent_units)
@@ -1377,6 +1401,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.input_text_size, self.text_vae.input_text_size)
         self.assertEqual(res.output_text_size, self.text_vae.output_text_size)
         self.assertEqual(res.validation_fraction, self.text_vae.validation_fraction)
+        self.assertEqual(res.lr, self.text_vae.lr)
 
     def test_serialize_fitted(self):
         self.text_vae.fit(self.input_texts, self.target_texts)
@@ -1398,6 +1423,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
+        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1420,9 +1446,12 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.n_recurrent_units, self.text_vae.n_recurrent_units)
         self.assertEqual(res.warm_start, self.text_vae.warm_start)
         self.assertEqual(res.verbose, self.text_vae.verbose)
+        self.assertEqual(res.use_attention, self.text_vae.use_attention)
+        self.assertEqual(res.use_batch_norm, self.text_vae.use_batch_norm)
         self.assertEqual(res.input_text_size, self.text_vae.input_text_size)
         self.assertEqual(res.output_text_size, self.text_vae.output_text_size)
         self.assertEqual(res.validation_fraction, self.text_vae.validation_fraction)
+        self.assertEqual(res.lr, self.text_vae.lr)
         X1 = self.text_vae.transform(self.input_texts)
         X2 = res.transform(self.input_texts)
         self.assertIsInstance(X1, np.ndarray)

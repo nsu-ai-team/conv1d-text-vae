@@ -10,7 +10,7 @@ import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, BatchNormalization, Dropout, Dense
-from keras.layers import CuDNNGRU, Flatten, Reshape, Lambda, Cropping1D
+from keras.layers import CuDNNGRU, Flatten, Reshape, RepeatVector, Permute, Multiply, Lambda, Cropping1D
 from keras.engine.topology import Layer
 from keras.models import Model
 from keras.optimizers import RMSprop
@@ -144,7 +144,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                  tokenizer: BaseTokenizer=None, n_filters: Union[int, tuple]=128, kernel_size: int=3, latent_dim: int=5,
                  n_recurrent_units: int=128, input_text_size: int=None, output_text_size: int=None, batch_size: int=64,
                  max_epochs: int=100, lr: float=0.001, validation_fraction: float=0.2, use_batch_norm: bool=False,
-                 output_onehot_size: int=None, warm_start: bool=False, verbose: bool=False):
+                 use_attention: bool=True, output_onehot_size: int=None, warm_start: bool=False, verbose: bool=False):
         self.n_filters = n_filters
         self.kernel_size = kernel_size
         self.input_embeddings = input_embeddings
@@ -162,6 +162,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.tokenizer = tokenizer
         self.output_onehot_size = output_onehot_size
         self.use_batch_norm = use_batch_norm
+        self.use_attention = use_attention
 
     def __del__(self):
         if hasattr(self, 'vae_encoder_') or hasattr(self, 'generator_encoder_') or hasattr(self, 'generator_decoder_'):
@@ -474,6 +475,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             'latent_dim': self.latent_dim,
             'n_recurrent_units': self.n_recurrent_units,
             'use_batch_norm': self.use_batch_norm,
+            'use_attention': self.use_attention,
             'output_onehot_size': self.output_onehot_size,
             'warm_start': self.warm_start,
             'verbose': self.verbose,
@@ -494,6 +496,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.latent_dim = params['latent_dim']
         self.n_recurrent_units = params['n_recurrent_units']
         self.use_batch_norm = params['use_batch_norm']
+        self.use_attention = params['use_attention']
         self.output_onehot_size = params['output_onehot_size']
         self.warm_start = params['warm_start']
         self.verbose = params['verbose']
@@ -639,6 +642,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if (not isinstance(params['use_batch_norm'], bool)) and (not isinstance(params['use_batch_norm'], int)):
             raise ValueError('The parameter `use_batch_norm` is wrong! Expected `{0}`, got `{1}`.'.format(
                 type(True), type(params['use_batch_norm'])))
+        if 'use_attention' not in params:
+            raise ValueError('The parameter `use_attention` is not defined!')
+        if (not isinstance(params['use_attention'], bool)) and (not isinstance(params['use_attention'], int)):
+            raise ValueError('The parameter `use_attention` is wrong! Expected `{0}`, got `{1}`.'.format(
+                type(True), type(params['use_attention'])))
         if 'verbose' not in params:
             raise ValueError('The parameter `verbose` is not defined!')
         if (not isinstance(params['verbose'], bool)) and (not isinstance(params['verbose'], int)):
@@ -1131,6 +1139,16 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return xent_loss - kl_loss
 
+        def attention_for_seq2seq_encoder(inputs):
+            a = Permute((2, 1), name='attention_aux1')(inputs)
+            a = Reshape((output_vector_size, self.output_text_size_), name='attention_aux2')(a)
+            a = Dense(self.output_text_size_, activation='softmax', name='attention_aux3')(a)
+            a = Lambda(lambda x: K.mean(x, axis=1), name='attention_dim_reduction')(a)
+            a = RepeatVector(output_vector_size, name='attention_aux4')(a)
+            a_probs = Permute((2, 1), name='attention_vec')(a)
+            output_attention_mul = Multiply(name='attention_mul')([inputs, a_probs])
+            return output_attention_mul
+
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='tanh',
                             name: str = "", trainable: bool = True):
             x = Lambda(lambda x: K.expand_dims(x, axis=2), name=name + '_deconv1d_part1')(input_tensor)
@@ -1206,9 +1224,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                 padding='same', name='deconv_decoder_embeddings', trainable=True)(deconv_decoder)
         deconv_decoder = Lambda(normalize_outputs, name='deconv_decoder_normalize')(deconv_decoder)
         deconv_decoder_model = Model(deconv_decoder_input, deconv_decoder, name='DecoderForVAE')
-        _, seq2seq_encoder_state = CuDNNGRU(
-            self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
-        )(deconv_decoder_model(z_mean))
+        if self.use_attention:
+            _, seq2seq_encoder_state = CuDNNGRU(
+                self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
+            )(attention_for_seq2seq_encoder(deconv_decoder_model(z_mean)))
+        else:
+            _, seq2seq_encoder_state = CuDNNGRU(
+                self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
+            )(deconv_decoder_model(z_mean))
         seq2seq_decoder_input = Input(shape=(None, len(self.target_char_index_)), name='seq2seq_decoder_input')
         seq2seq_decoder_gru = CuDNNGRU(self.n_recurrent_units, return_sequences=True, return_state=True,
                                        name='seq2seq_decoder_gru')
