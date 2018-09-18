@@ -867,7 +867,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('----------------------------------------')
                 print('K-Means clustering is started...')
                 print('----------------------------------------')
-            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose)
+            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose,
+                                         batch_size=max(max_vocabulary_size, int(round(word_vectors.shape[0] * 0.05))))
             word_clusters = clustering.fit_predict(word_vectors)
             del word_vectors
             word_vectors = clustering.cluster_centers_
