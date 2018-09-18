@@ -1147,7 +1147,7 @@ class TestConv1dTextVAE(unittest.TestCase):
 
     def test_fit_positive02(self):
         self.text_vae.verbose = 2
-        self.text_vae.output_onehot_size = 5
+        self.text_vae.output_onehot_size = 3
         res = self.text_vae.fit(self.input_texts)
         self.assertIsInstance(res, Conv1dTextVAE)
         self.assertIsInstance(res, Conv1dTextVAE)

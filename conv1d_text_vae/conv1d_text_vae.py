@@ -246,7 +246,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.target_char_index_ = dict([(char, i) for i, char in enumerate(target_characters)])
         self.reverse_target_char_index_ = dict((i, char) for char, i in self.target_char_index_.items())
         output_vocabulary, output_word_vectors = self.prepare_vocabulary_and_word_vectors(
-            target_texts, self.output_embeddings, special_symbols, self.output_onehot_size)
+            target_texts, self.output_embeddings, special_symbols, self.output_onehot_size, verbose=self.verbose)
         if self.warm_start:
             all_weights = self.__dump_weights(self.vae_encoder_)
             del self.vae_encoder_, self.generator_encoder_, self.generator_decoder_
@@ -836,9 +836,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         return res[start_idx:end_idx]
 
     @staticmethod
-    def get_vocabulary_and_word_vectors_from_fasttext(all_texts, fasttext_vectors: FastTextKeyedVectors,
-                                                      special_symbols: Union[tuple, None],
-                                                      max_vocabulary_size: int=None) -> Tuple[dict, np.ndarray]:
+    def get_vocabulary_and_word_vectors_from_fasttext(
+            all_texts, fasttext_vectors: FastTextKeyedVectors, special_symbols: Union[tuple, None],
+            max_vocabulary_size: int=None, verbose: bool=False) -> Tuple[dict, np.ndarray]:
         vocabulary = dict()
         word_idx = 0
         for cur_text in all_texts:
@@ -862,7 +862,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             vector_norm = np.linalg.norm(word_vector)
             word_vectors[word_idx] = word_vector / vector_norm
         if (max_vocabulary_size is not None) and (max_vocabulary_size < word_vectors.shape[0]):
-            clustering = KMeans(n_clusters=max_vocabulary_size, n_jobs=-1)
+            if verbose:
+                print('')
+                print('----------------------------------------')
+                print('K-Means clustering is started...')
+                print('----------------------------------------')
+            clustering = KMeans(n_clusters=max_vocabulary_size, n_jobs=-1, verbose=verbose)
             word_clusters = clustering.fit_predict(word_vectors)
             del word_vectors
             word_vectors = clustering.cluster_centers_
@@ -876,10 +881,10 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @staticmethod
     def prepare_vocabulary_and_word_vectors(all_texts, fasttext_vectors: FastTextKeyedVectors,
-                                            special_symbols: Union[tuple, None],
-                                            max_vocabulary_size: int=None) -> Tuple[dict, np.ndarray]:
+                                            special_symbols: Union[tuple, None], max_vocabulary_size: int=None,
+                                            verbose: bool=False) -> Tuple[dict, np.ndarray]:
         src_fasttext_vocabulary, src_fasttext_vectors = Conv1dTextVAE.get_vocabulary_and_word_vectors_from_fasttext(
-            all_texts, fasttext_vectors, special_symbols, max_vocabulary_size
+            all_texts, fasttext_vectors, special_symbols, max_vocabulary_size, verbose
         )
         vector_size = Conv1dTextVAE.calc_vector_size(fasttext_vectors, special_symbols)
         vocabulary = dict()
