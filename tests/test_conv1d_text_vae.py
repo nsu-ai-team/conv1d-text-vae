@@ -522,6 +522,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(self.text_vae, 'output_embeddings'))
         self.assertTrue(hasattr(self.text_vae, 'batch_size'))
         self.assertTrue(hasattr(self.text_vae, 'max_epochs'))
+        self.assertTrue(hasattr(self.text_vae, 'lr'))
         self.assertTrue(hasattr(self.text_vae, 'latent_dim'))
         self.assertTrue(hasattr(self.text_vae, 'n_recurrent_units'))
         self.assertTrue(hasattr(self.text_vae, 'use_batch_norm'))
@@ -934,6 +935,28 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
+    def test_check_params_negative41(self):
+        params = self.text_vae.__dict__
+        del params['lr']
+        true_err_msg = re.escape('The parameter `lr` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative42(self):
+        params = self.text_vae.__dict__
+        params['lr'] = '1.5'
+        true_err_msg = re.escape('The parameter `lr` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(10.5), type('1.5')))
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
+    def test_check_params_negative43(self):
+        params = self.text_vae.__dict__
+        params['lr'] = -0.1
+        true_err_msg = 'The parameter \`lr\` is wrong\! Expected a positive value\, but \-0\.\d+ is not positive\.'
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            Conv1dTextVAE.check_params(**params)
+
     def test_float_to_string_positive01(self):
         value = 3.567
         true_res = '3.567'
@@ -1127,6 +1150,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
@@ -1157,6 +1181,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
@@ -1191,6 +1216,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
@@ -1225,6 +1251,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
@@ -1319,6 +1346,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
@@ -1364,6 +1392,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
+        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
         self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))

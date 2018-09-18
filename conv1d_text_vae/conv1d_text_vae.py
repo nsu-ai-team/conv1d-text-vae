@@ -143,7 +143,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     def __init__(self, input_embeddings: FastTextKeyedVectors, output_embeddings: FastTextKeyedVectors,
                  tokenizer: BaseTokenizer=None, n_filters: Union[int, tuple]=128, kernel_size: int=3, latent_dim: int=5,
                  n_recurrent_units: int=128, input_text_size: int=None, output_text_size: int=None, batch_size: int=64,
-                 max_epochs: int=100, validation_fraction: float=0.2, use_batch_norm: bool=False,
+                 max_epochs: int=100, lr: float=0.001, validation_fraction: float=0.2, use_batch_norm: bool=False,
                  output_onehot_size: int=None, warm_start: bool=False, verbose: bool=False):
         self.n_filters = n_filters
         self.kernel_size = kernel_size
@@ -151,6 +151,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.output_embeddings = output_embeddings
         self.batch_size = batch_size
         self.max_epochs = max_epochs
+        self.lr = lr
         self.latent_dim = latent_dim
         self.warm_start = warm_start
         self.verbose = verbose
@@ -323,7 +324,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             for layer in seq2seq_model_for_training.layers:
                 if not layer.name.startswith('seq2seq'):
                     layer.trainable = False
-            seq2seq_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss='categorical_crossentropy')
+            seq2seq_model_for_training.compile(optimizer=RMSprop(lr=self.lr, clipnorm=10.0),
+                                               loss='categorical_crossentropy')
             training_set_generator.for_vae = False
             evaluation_set_generator.for_vae = False
             callbacks = [
@@ -468,6 +470,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                   else self.output_embeddings),
             'batch_size': self.batch_size,
             'max_epochs': self.max_epochs,
+            'lr': self.lr,
             'latent_dim': self.latent_dim,
             'n_recurrent_units': self.n_recurrent_units,
             'use_batch_norm': self.use_batch_norm,
@@ -487,6 +490,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.output_embeddings = params['output_embeddings']
         self.batch_size = params['batch_size']
         self.max_epochs = params['max_epochs']
+        self.lr = params['lr']
         self.latent_dim = params['latent_dim']
         self.n_recurrent_units = params['n_recurrent_units']
         self.use_batch_norm = params['use_batch_norm']
@@ -732,6 +736,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             raise ValueError('The parameter `validation_fraction` is wrong! Expected a positive value between 0.0 and '
                              '1.0, but {0} does not correspond to this condition.'.format(
                 Conv1dTextVAE.float_to_string(params['validation_fraction'])))
+        if 'lr' not in params:
+            raise ValueError('The parameter `lr` is not defined!')
+        if not isinstance(params['lr'], float):
+            raise ValueError('The parameter `lr` is wrong! Expected `{0}`, got `{1}`.'.format(
+                type(10.5), type(params['lr'])))
+        if params['lr'] <= 0:
+            raise ValueError('The parameter `lr` is wrong! Expected a positive value, but {0} is not positive.'.format(
+                params['lr']))
 
     @staticmethod
     def calc_vector_size(embeddings: FastTextKeyedVectors, special_symbols: Union[tuple, set, None]):
@@ -1221,7 +1233,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
             seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
                                                name='seq2seq_for_training')
-            vae_model_for_training.compile(optimizer=RMSprop(clipnorm=10.0), loss=vae_loss)
+            vae_model_for_training.compile(optimizer=RMSprop(lr=self.lr, clipnorm=10.0), loss=vae_loss)
             if self.verbose:
                 print('')
                 print('ENCODER:')
