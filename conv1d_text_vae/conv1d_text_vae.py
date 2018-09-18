@@ -20,7 +20,7 @@ import numpy as np
 from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans
 
 
 class BaseTokenizer:
@@ -836,6 +836,49 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         return res[start_idx:end_idx]
 
     @staticmethod
+    def clusterize_by_kmeans(word_vectors: np.ndarray, max_vocabulary_size: int,
+                             verbose: bool) -> Tuple[list, np.ndarray]:
+        try:
+            import tensorflow as tf
+            import time
+
+            def input_fn_for_training():
+                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=300)
+
+            def input_fn_for_evaluation():
+                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=1)
+
+            clustering = tf.contrib.factorization.KMeansClustering(
+                num_clusters=max_vocabulary_size, use_mini_batch=False,
+                initial_clusters=tf.contrib.factorization.KMeansClustering.KMEANS_PLUS_PLUS_INIT,
+                distance_metric=tf.contrib.factorization.KMeansClustering.COSINE_DISTANCE, relative_tolerance=1e-4,
+                kmeans_plus_plus_num_retries=10)
+            if verbose:
+                print('')
+                print('----------------------------------------')
+                print('K-Means clustering with Tensorflow is started...')
+                print('----------------------------------------')
+            clustering.train(input_fn_for_training, max_steps=300)
+            if verbose:
+                print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
+            word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
+            del word_vectors
+            word_vectors = clustering.cluster_centers()
+            del clustering
+        except:
+            if verbose:
+                print('')
+                print('----------------------------------------')
+                print('K-Means clustering with scikit-learn is started...')
+                print('----------------------------------------')
+            clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1)
+            word_clusters = clustering.fit_predict(word_vectors)
+            del word_vectors
+            word_vectors = clustering.cluster_centers_
+            del clustering
+        return word_clusters.tolist() if isinstance(word_clusters, np.ndarray) else word_clusters, word_vectors
+
+    @staticmethod
     def get_vocabulary_and_word_vectors_from_fasttext(
             all_texts, fasttext_vectors: FastTextKeyedVectors, special_symbols: Union[tuple, None],
             max_vocabulary_size: int=None, verbose: bool=False) -> Tuple[dict, np.ndarray]:
@@ -862,17 +905,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             vector_norm = np.linalg.norm(word_vector)
             word_vectors[word_idx] = word_vector / vector_norm
         if (max_vocabulary_size is not None) and (max_vocabulary_size < word_vectors.shape[0]):
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('K-Means clustering is started...')
-                print('----------------------------------------')
-            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose,
-                                         batch_size=max(max_vocabulary_size, int(round(word_vectors.shape[0] * 0.05))))
-            word_clusters = clustering.fit_predict(word_vectors)
-            del word_vectors
-            word_vectors = clustering.cluster_centers_
-            del clustering
+            word_clusters, word_vectors = Conv1dTextVAE.clusterize_by_kmeans(word_vectors, max_vocabulary_size, verbose)
             for word_idx in range(word_vectors.shape[0]):
                 vector_norm = np.linalg.norm(word_vectors[word_idx])
                 word_vectors[word_idx] = word_vectors[word_idx] / vector_norm
