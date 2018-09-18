@@ -860,13 +860,31 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                              verbose: bool) -> Tuple[list, np.ndarray]:
         try:
             import tensorflow as tf
+            from tensorflow.python.framework import ops
+            from tensorflow.python.training.session_run_hook import SessionRunArgs
             import time
+            from datetime import datetime
 
             def input_fn_for_training():
                 return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=300)
 
             def input_fn_for_evaluation():
                 return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=1)
+
+            class _LoggerHook(tf.train.SessionRunHook):
+                def begin(self):
+                    self._step = -1
+                    self._start_time = time.time()
+
+                def before_run(self, run_context):
+                    del run_context
+                    self._step += 1
+
+                def after_run(self, run_context, run_values):
+                    current_time = time.time()
+                    self._start_time = current_time
+                    format_str = ('%s: step %d')
+                    print(format_str % (datetime.now(), self._step))
 
             clustering = tf.contrib.factorization.KMeansClustering(
                 num_clusters=max_vocabulary_size, use_mini_batch=False,
@@ -878,8 +896,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('----------------------------------------')
                 print('K-Means clustering with Tensorflow is started...')
                 print('----------------------------------------')
-            clustering.train(input_fn_for_training, max_steps=300)
+            clustering.train(input_fn_for_training, max_steps=300, hooks=[_LoggerHook()] if verbose else None)
             if verbose:
+                print('Training of the K-Means is finished...')
                 print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
             word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
             del word_vectors
