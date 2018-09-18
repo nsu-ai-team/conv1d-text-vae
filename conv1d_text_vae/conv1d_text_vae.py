@@ -20,7 +20,7 @@ import numpy as np
 from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 
 
 class BaseTokenizer:
@@ -867,7 +867,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('----------------------------------------')
                 print('K-Means clustering is started...')
                 print('----------------------------------------')
-            clustering = KMeans(n_clusters=max_vocabulary_size, n_jobs=-1, verbose=verbose)
+            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose)
             word_clusters = clustering.fit_predict(word_vectors)
             del word_vectors
             word_vectors = clustering.cluster_centers_
