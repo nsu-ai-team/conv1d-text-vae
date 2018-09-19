@@ -858,63 +858,35 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def clusterize_by_kmeans(word_vectors: np.ndarray, max_vocabulary_size: int,
                              verbose: bool) -> Tuple[list, np.ndarray]:
+        if verbose:
+            print('')
+            print('----------------------------------------')
+            print('K-Means clustering with scikit-learn is started...')
+            print('----------------------------------------')
+            print('n_jobs = {0}'.format(-1))
+        clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
         try:
-            import tensorflow as tf
-            from tensorflow.python.framework import ops
-            from tensorflow.python.training.session_run_hook import SessionRunArgs
-            import time
-            from datetime import datetime
-
-            def input_fn_for_training():
-                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=300)
-
-            def input_fn_for_evaluation():
-                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=1)
-
-            class _LoggerHook(tf.train.SessionRunHook):
-                def begin(self):
-                    self._step = -1
-                    self._start_time = time.time()
-
-                def before_run(self, run_context):
-                    del run_context
-                    self._step += 1
-
-                def after_run(self, run_context, run_values):
-                    current_time = time.time()
-                    self._start_time = current_time
-                    format_str = ('%s: step %d')
-                    print(format_str % (datetime.now(), self._step))
-
-            clustering = tf.contrib.factorization.KMeansClustering(
-                num_clusters=max_vocabulary_size, use_mini_batch=False,
-                initial_clusters=tf.contrib.factorization.KMeansClustering.KMEANS_PLUS_PLUS_INIT,
-                distance_metric=tf.contrib.factorization.KMeansClustering.COSINE_DISTANCE, relative_tolerance=1e-4,
-                kmeans_plus_plus_num_retries=10)
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('K-Means clustering with Tensorflow is started...')
-                print('----------------------------------------')
-            clustering.train(input_fn_for_training, max_steps=300, hooks=[_LoggerHook()] if verbose else None)
-            if verbose:
-                print('Training of the K-Means is finished...')
-                print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
-            word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
-            del word_vectors
-            word_vectors = clustering.cluster_centers()
-            del clustering
-        except:
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('K-Means clustering with scikit-learn is started...')
-                print('----------------------------------------')
-            clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1)
             word_clusters = clustering.fit_predict(word_vectors)
-            del word_vectors
-            word_vectors = clustering.cluster_centers_
-            del clustering
+        except:
+            clustering.n_jobs = -2
+            if verbose:
+                print('n_jobs = {0}'.format(clustering.n_jobs))
+            try:
+                word_clusters = clustering.fit_predict(word_vectors)
+            except:
+                clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
+                if verbose:
+                    print('n_jobs = {0}'.format(clustering.n_jobs))
+                try:
+                    word_clusters = clustering.fit_predict(word_vectors)
+                except:
+                    clustering.n_jobs = 1
+                    if verbose:
+                        print('n_jobs = {0}'.format(clustering.n_jobs))
+                    word_clusters = clustering.fit_predict(word_vectors)
+        del word_vectors
+        word_vectors = clustering.cluster_centers_
+        del clustering
         return word_clusters.tolist() if isinstance(word_clusters, np.ndarray) else word_clusters, word_vectors
 
     @staticmethod
