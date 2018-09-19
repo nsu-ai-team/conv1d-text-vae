@@ -860,82 +860,52 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                              verbose: bool) -> Tuple[list, np.ndarray]:
         indices = np.arange(0, word_vectors.shape[0], 1, dtype=np.int32)
         np.random.shuffle(indices)
-        try:
-            import tensorflow as tf
-            import time
-
-            with tf.device('/gpu:0'):
-
-                def input_fn_for_training():
-                    np.random.shuffle(indices)
-                    return tf.data.Dataset.from_tensors(word_vectors[indices])
-
-                def input_fn_for_evaluation():
-                    return tf.data.Dataset.from_tensors(word_vectors)
-
-                clustering = tf.contrib.factorization.KMeansClustering(
-                    num_clusters=max_vocabulary_size, use_mini_batch=False,
-                    initial_clusters=tf.contrib.factorization.KMeansClustering.KMEANS_PLUS_PLUS_INIT,
-                    relative_tolerance=1e-4, kmeans_plus_plus_num_retries=10)
-                if verbose:
-                    print('')
-                    print('----------------------------------------')
-                    print('K-Means clustering with Tensorflow is started...')
-                    print('----------------------------------------')
-                clustering.train(input_fn_for_training, max_steps=300)
-                if verbose:
-                    print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
-                word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
-                del word_vectors
-                word_vectors = clustering.cluster_centers()
-                del clustering
-        except:
-            batch_size = 2 * max_vocabulary_size
-            if batch_size <= (word_vectors.shape[0] // 4):
-                if verbose:
-                    print('')
-                    print('----------------------------------------')
-                    print('Mini-Batch K-Means clustering with scikit-learn is started...')
-                    print('----------------------------------------')
-                    print('n_samples = {0}'.format(word_vectors.shape[0]))
-                    print('batch_size = {0}'.format(batch_size))
-                clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose, batch_size=batch_size)
+        batch_size = 2 * max_vocabulary_size
+        if batch_size <= (word_vectors.shape[0] // 4):
+            if verbose:
+                print('')
+                print('----------------------------------------')
+                print('Mini-Batch K-Means clustering with scikit-learn is started...')
+                print('----------------------------------------')
+                print('n_samples = {0}'.format(word_vectors.shape[0]))
+                print('batch_size = {0}'.format(batch_size))
+            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose, batch_size=batch_size)
+            clustering.fit(word_vectors[indices])
+        else:
+            if verbose:
+                print('')
+                print('----------------------------------------')
+                print('K-Means clustering with scikit-learn is started...')
+                print('----------------------------------------')
+                print('n_samples = {0}'.format(word_vectors.shape[0]))
+                print('n_jobs = {0}'.format(-1))
+            clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
+            try:
                 clustering.fit(word_vectors[indices])
-            else:
+            except:
+                clustering.n_jobs = -2
                 if verbose:
-                    print('')
-                    print('----------------------------------------')
-                    print('K-Means clustering with scikit-learn is started...')
-                    print('----------------------------------------')
-                    print('n_samples = {0}'.format(word_vectors.shape[0]))
-                    print('n_jobs = {0}'.format(-1))
-                clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
+                    print('n_jobs = {0}'.format(clustering.n_jobs))
                 try:
                     clustering.fit(word_vectors[indices])
                 except:
-                    clustering.n_jobs = -2
+                    clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
                     if verbose:
                         print('n_jobs = {0}'.format(clustering.n_jobs))
                     try:
                         clustering.fit(word_vectors[indices])
                     except:
-                        clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
+                        clustering.n_jobs = 1
                         if verbose:
                             print('n_jobs = {0}'.format(clustering.n_jobs))
-                        try:
-                            clustering.fit(word_vectors[indices])
-                        except:
-                            clustering.n_jobs = 1
-                            if verbose:
-                                print('n_jobs = {0}'.format(clustering.n_jobs))
-                            clustering.fit(word_vectors[indices])
-            if verbose:
-                print('K-Means training is finished...')
-                print('Quantization with K-Means is started...')
-            word_clusters = clustering.predict(word_vectors).tolist()
-            del word_vectors
-            word_vectors = clustering.cluster_centers_
-            del clustering
+                        clustering.fit(word_vectors[indices])
+        if verbose:
+            print('K-Means training is finished...')
+            print('Quantization with K-Means is started...')
+        word_clusters = clustering.predict(word_vectors).tolist()
+        del word_vectors
+        word_vectors = clustering.cluster_centers_
+        del clustering
         if verbose:
             print('Quantization with K-Means is finished...')
             print('')
