@@ -860,7 +860,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                              verbose: bool) -> Tuple[list, np.ndarray]:
         indices = np.arange(0, word_vectors.shape[0], 1, dtype=np.int32)
         np.random.shuffle(indices)
-        batch_size = (3 * max_vocabulary_size) // 2
+        batch_size = 2 * max_vocabulary_size
         if batch_size <= (word_vectors.shape[0] // 4):
             if verbose:
                 print('')
