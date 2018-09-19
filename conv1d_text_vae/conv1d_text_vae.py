@@ -13,7 +13,7 @@ from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, Batch
 from keras.layers import CuDNNGRU, Flatten, Reshape, RepeatVector, Permute, Multiply, Lambda, Cropping1D
 from keras.engine.topology import Layer
 from keras.models import Model
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Nadam
 from keras.utils import Sequence
 from nltk.tokenize.nist import NISTTokenizer
 import numpy as np
@@ -1269,7 +1269,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
             seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
                                                name='seq2seq_for_training')
-            vae_model_for_training.compile(optimizer=RMSprop(lr=self.lr, clipnorm=10.0), loss=vae_loss)
+            vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss)
             if self.verbose:
                 print('')
                 print('ENCODER:')
