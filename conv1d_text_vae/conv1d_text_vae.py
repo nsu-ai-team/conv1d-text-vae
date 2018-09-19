@@ -21,7 +21,7 @@ from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.cluster import DBSCAN
-from sklearn.metrics.pairwise import cosine_distances
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 class BaseTokenizer:
@@ -859,13 +859,13 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
                               verbose: bool) -> Tuple[list, np.ndarray]:
-        distances = cosine_distances(word_vectors[0:1], word_vectors[1:])[0]
+        distances = euclidean_distances(word_vectors[0:1], word_vectors[1:])[0]
         distances = np.sort(distances)
         max_distance = distances[min(word_vectors.shape[0] // 2,
                                      (2 * word_vectors.shape[0]) // (max_vocabulary_size * 3))]
         del distances
         clustering = DBSCAN(n_jobs=1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 4))),
-                            metric='cosine', eps=max_distance, algorithm='kd_tree')
+                            metric='euclidean', eps=max_distance, algorithm='kd_tree')
         if verbose:
             print('')
             print('----------------------------------------')
@@ -936,9 +936,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if (max_vocabulary_size is not None) and (max_vocabulary_size < word_vectors.shape[0]):
             word_clusters, word_vectors = Conv1dTextVAE.quantize_word_vectors(word_vectors, max_vocabulary_size,
                                                                               verbose)
-            for word_idx in range(word_vectors.shape[0]):
-                vector_norm = np.linalg.norm(word_vectors[word_idx])
-                word_vectors[word_idx] = word_vectors[word_idx] / vector_norm
             for cur_word in vocabulary:
                 vocabulary[cur_word] = word_clusters[vocabulary[cur_word]]
         return vocabulary, word_vectors
