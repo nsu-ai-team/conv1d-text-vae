@@ -21,7 +21,7 @@ from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.cluster import DBSCAN
-from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.metrics.pairwise import cosine_distances
 
 
 class BaseTokenizer:
@@ -859,7 +859,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
                               verbose: bool) -> Tuple[list, np.ndarray]:
-        distances = euclidean_distances(word_vectors[0:1], word_vectors[1:])[0]
+        distances = cosine_distances(word_vectors[0:1], word_vectors[1:])[0]
         distances = np.sort(distances)
         max_distance = distances[min(word_vectors.shape[0] // 2, word_vectors.shape[0] // max_vocabulary_size)]
         clustering = DBSCAN(n_jobs=-1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 2))),
