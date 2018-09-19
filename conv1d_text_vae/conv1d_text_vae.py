@@ -887,18 +887,18 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 if verbose:
                     print('n_jobs = {0}'.format(clustering.n_jobs))
                 try:
-                    clustering.predict(word_vectors[indices])
+                    clustering.fit(word_vectors[indices])
                 except:
                     clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
                     if verbose:
                         print('n_jobs = {0}'.format(clustering.n_jobs))
                     try:
-                        clustering.predict(word_vectors[indices])
+                        clustering.fit(word_vectors[indices])
                     except:
                         clustering.n_jobs = 1
                         if verbose:
                             print('n_jobs = {0}'.format(clustering.n_jobs))
-                        clustering.predict(word_vectors[indices])
+                        clustering.fit(word_vectors[indices])
         if verbose:
             print('K-Means training is finished...')
             print('Quantization with K-Means is started...')
