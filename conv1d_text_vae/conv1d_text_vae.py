@@ -862,7 +862,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if verbose:
             print('')
             print('----------------------------------------')
-            print('Aggglomerative clustering with scikit-learn is started...')
+            print('Agglomerative clustering with scikit-learn is started...')
             print('----------------------------------------')
             print('n_samples = {0}'.format(word_vectors.shape[0]))
         predicted = clustering.fit_predict(word_vectors)
