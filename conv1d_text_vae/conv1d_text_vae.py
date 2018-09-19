@@ -20,7 +20,7 @@ import numpy as np
 from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import KMeans, MiniBatchKMeans
+from sklearn.cluster import AgglomerativeClustering
 
 
 class BaseTokenizer:
@@ -856,60 +856,39 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         return res[start_idx:end_idx]
 
     @staticmethod
-    def clusterize_by_kmeans(word_vectors: np.ndarray, max_vocabulary_size: int,
-                             verbose: bool) -> Tuple[list, np.ndarray]:
-        indices = np.arange(0, word_vectors.shape[0], 1, dtype=np.int32)
-        np.random.shuffle(indices)
-        batch_size = 2 * max_vocabulary_size
-        if batch_size <= (word_vectors.shape[0] // 4):
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('Mini-Batch K-Means clustering with scikit-learn is started...')
-                print('----------------------------------------')
-                print('n_samples = {0}'.format(word_vectors.shape[0]))
-                print('batch_size = {0}'.format(batch_size))
-            clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose, batch_size=batch_size)
-            clustering.fit(word_vectors[indices])
-        else:
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('K-Means clustering with scikit-learn is started...')
-                print('----------------------------------------')
-                print('n_samples = {0}'.format(word_vectors.shape[0]))
-                print('n_jobs = {0}'.format(-1))
-            clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
-            try:
-                clustering.fit(word_vectors[indices])
-            except:
-                clustering.n_jobs = -2
-                if verbose:
-                    print('n_jobs = {0}'.format(clustering.n_jobs))
-                try:
-                    clustering.fit(word_vectors[indices])
-                except:
-                    clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
-                    if verbose:
-                        print('n_jobs = {0}'.format(clustering.n_jobs))
-                    try:
-                        clustering.fit(word_vectors[indices])
-                    except:
-                        clustering.n_jobs = 1
-                        if verbose:
-                            print('n_jobs = {0}'.format(clustering.n_jobs))
-                        clustering.fit(word_vectors[indices])
+    def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
+                              verbose: bool) -> Tuple[list, np.ndarray]:
+        clustering = AgglomerativeClustering(n_clusters=max_vocabulary_size)
         if verbose:
-            print('K-Means training is finished...')
-            print('Quantization with K-Means is started...')
-        word_clusters = clustering.predict(word_vectors).tolist()
-        del word_vectors
-        word_vectors = clustering.cluster_centers_
-        del clustering
-        if verbose:
-            print('Quantization with K-Means is finished...')
             print('')
-        return word_clusters, word_vectors
+            print('----------------------------------------')
+            print('Aggglomerative clustering with scikit-learn is started...')
+            print('----------------------------------------')
+            print('n_samples = {0}'.format(word_vectors.shape[0]))
+        predicted = clustering.fit_predict(word_vectors)
+        n_clusters = len(set(predicted.tolist()))
+        if verbose:
+            print('Training of the agglomerative clustering is finished...')
+            print('Quantization is started...')
+        cluster_centers = np.zeros((n_clusters, word_vectors.shape[1]), dtype=np.float32)
+        frequencies = np.zeros((n_clusters,), dtype=np.int32)
+        word_clusters = list()
+        for sample_idx in range(len(predicted)):
+            cluster_idx = predicted[sample_idx]
+            cluster_centers[cluster_idx] += word_vectors[sample_idx]
+            word_clusters.append(cluster_idx)
+            frequencies[cluster_idx] += 1
+        for cluster_idx in range(cluster_centers.shape[0]):
+            cluster_centers[cluster_idx] /= frequencies[cluster_idx]
+            vector_norm = np.linalg.norm(cluster_centers[cluster_idx])
+            cluster_centers[cluster_idx] /= vector_norm
+        del word_vectors
+        del clustering
+        del frequencies, predicted
+        if verbose:
+            print('Quantization is finished...')
+            print('')
+        return word_clusters, cluster_centers
 
     @staticmethod
     def get_vocabulary_and_word_vectors_from_fasttext(
@@ -938,7 +917,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             vector_norm = np.linalg.norm(word_vector)
             word_vectors[word_idx] = word_vector / vector_norm
         if (max_vocabulary_size is not None) and (max_vocabulary_size < word_vectors.shape[0]):
-            word_clusters, word_vectors = Conv1dTextVAE.clusterize_by_kmeans(word_vectors, max_vocabulary_size, verbose)
+            word_clusters, word_vectors = Conv1dTextVAE.quantize_word_vectors(word_vectors, max_vocabulary_size,
+                                                                              verbose)
             for word_idx in range(word_vectors.shape[0]):
                 vector_norm = np.linalg.norm(word_vectors[word_idx])
                 word_vectors[word_idx] = word_vectors[word_idx] / vector_norm
