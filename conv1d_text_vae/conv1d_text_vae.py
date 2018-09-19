@@ -864,29 +864,31 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             import tensorflow as tf
             import time
 
-            def input_fn_for_training():
-                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors[indices], dtype=tf.float32),
-                                             num_epochs=300)
+            with tf.device('/gpu:0'):
 
-            def input_fn_for_evaluation():
-                return tf.train.limit_epochs(tf.convert_to_tensor(word_vectors, dtype=tf.float32), num_epochs=1)
+                def input_fn_for_training():
+                    np.random.shuffle(indices)
+                    return tf.data.Dataset.from_tensors(word_vectors[indices])
 
-            clustering = tf.contrib.factorization.KMeansClustering(
-                num_clusters=max_vocabulary_size, use_mini_batch=False,
-                initial_clusters=tf.contrib.factorization.KMeansClustering.KMEANS_PLUS_PLUS_INIT,
-                relative_tolerance=1e-4, kmeans_plus_plus_num_retries=10)
-            if verbose:
-                print('')
-                print('----------------------------------------')
-                print('K-Means clustering with Tensorflow is started...')
-                print('----------------------------------------')
-            clustering.train(input_fn_for_training, max_steps=300)
-            if verbose:
-                print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
-            word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
-            del word_vectors
-            word_vectors = clustering.cluster_centers()
-            del clustering
+                def input_fn_for_evaluation():
+                    return tf.data.Dataset.from_tensors(word_vectors)
+
+                clustering = tf.contrib.factorization.KMeansClustering(
+                    num_clusters=max_vocabulary_size, use_mini_batch=False,
+                    initial_clusters=tf.contrib.factorization.KMeansClustering.KMEANS_PLUS_PLUS_INIT,
+                    relative_tolerance=1e-4, kmeans_plus_plus_num_retries=10)
+                if verbose:
+                    print('')
+                    print('----------------------------------------')
+                    print('K-Means clustering with Tensorflow is started...')
+                    print('----------------------------------------')
+                clustering.train(input_fn_for_training, max_steps=300)
+                if verbose:
+                    print('K-Means score is {0:.9f}'.format(clustering.score(input_fn_for_evaluation)))
+                word_clusters = list(clustering.predict_cluster_index(input_fn_for_evaluation))
+                del word_vectors
+                word_vectors = clustering.cluster_centers()
+                del clustering
         except:
             batch_size = 2 * max_vocabulary_size
             if batch_size <= (word_vectors.shape[0] // 4):
