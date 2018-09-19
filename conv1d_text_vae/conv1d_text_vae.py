@@ -865,6 +865,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('----------------------------------------')
                 print('Mini-Batch K-Means clustering with scikit-learn is started...')
                 print('----------------------------------------')
+                print('n_samples = {0}'.format(word_vectors.shape[0]))
                 print('batch_size = {0}'.format(batch_size))
             clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose, batch_size=batch_size)
             word_clusters = clustering.fit_predict(word_vectors)
@@ -874,6 +875,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('----------------------------------------')
                 print('K-Means clustering with scikit-learn is started...')
                 print('----------------------------------------')
+                print('n_samples = {0}'.format(word_vectors.shape[0]))
                 print('n_jobs = {0}'.format(-1))
             clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
             try:
