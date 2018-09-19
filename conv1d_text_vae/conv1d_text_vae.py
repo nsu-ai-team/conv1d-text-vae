@@ -861,7 +861,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                               verbose: bool) -> Tuple[list, np.ndarray]:
         distances = cosine_distances(word_vectors[0:1], word_vectors[1:])[0]
         distances = np.sort(distances)
-        max_distance = distances[min(word_vectors.shape[0] // 2, word_vectors.shape[0] // max_vocabulary_size)]
+        max_distance = distances[min(word_vectors.shape[0] // 2,
+                                     (2 * word_vectors.shape[0]) // (max_vocabulary_size * 3))]
         clustering = DBSCAN(n_jobs=-1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 2))),
                             metric='cosine', eps=max_distance)
         if verbose:
