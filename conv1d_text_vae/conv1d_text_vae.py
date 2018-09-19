@@ -1172,16 +1172,20 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return x
 
         class LayerForReconstruction(Layer):
+            def __init__(self, tau, **kwargs):
+                self.tau = K.constant(tau, dtype='float32', name='tau')
+                super(LayerForReconstruction, self).__init__(**kwargs)
+
             def call(self, inputs, **kwargs):
-                return K.softmax(100.0 * K.dot(inputs, weights_of_layer_for_reconstruction), axis=-1)
+                return K.softmax((1.0 / self.tau) * K.dot(inputs, weights_of_layer_for_reconstruction), axis=-1)
 
             def compute_output_shape(self, input_shape):
-                return (input_shape[0], input_shape[1], K.shape(weights_of_layer_for_reconstruction)[0])
+                return input_shape[0], input_shape[1], K.shape(weights_of_layer_for_reconstruction)[0]
 
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
         n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[0]
-        encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='elu',
+        encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='relu',
                          padding='valid', name='encoder_conv1d_1', trainable=(not warm_start))(encoder_input)
         if self.use_batch_norm:
             encoder = BatchNormalization(name='encoder_batchnorm_1')(encoder)
@@ -1189,7 +1193,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if isinstance(self.n_filters, tuple):
             layer_counter = 2
             for n_filters in self.n_filters[1:]:
-                encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='elu',
+                encoder = Conv1D(filters=n_filters, kernel_size=self.kernel_size, activation='relu',
                                  padding='valid', name='encoder_conv1d_{0}'.format(layer_counter),
                                  trainable=(not warm_start))(encoder)
                 if self.use_batch_norm:
@@ -1207,12 +1211,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 n_times_of_decoder = int(math.ceil((n_times_of_decoder - self.kernel_size + 1) / 2.0))
         width = max(10, int(math.ceil(self.latent_dim / float(n_times_of_decoder))))
         deconv_decoder_input = Input(shape=(self.latent_dim,), dtype='float32', name='deconv_decoder_input')
-        deconv_decoder = Dense(n_times_of_decoder * width, activation='elu', name='deconv_decoder_dense')(
+        deconv_decoder = Dense(n_times_of_decoder * width, activation='relu', name='deconv_decoder_dense')(
             Dropout(0.3, name='deconv_decoder_dropout')(deconv_decoder_input))
         deconv_decoder = Reshape((n_times_of_decoder, width), name='deconv_decoder_reshape')(deconv_decoder)
         n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[-1]
         deconv_decoder = Conv1DTranspose(deconv_decoder, filters=n_filters, kernel_size=self.kernel_size,
-                                         activation='elu', name='deconv_decoder_1', trainable=True, padding='valid')
+                                         activation='relu', name='deconv_decoder_1', trainable=True, padding='valid')
         if self.use_batch_norm:
             deconv_decoder = BatchNormalization(name='deconv_decoder_batchnorm_1')(deconv_decoder)
         deconv_decoder = UpSampling1D(size=2, name='deconv_decoder_upsampling_1')(deconv_decoder)
@@ -1222,7 +1226,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             idx.reverse()
             for n_filters in map(lambda it: self.n_filters[it], idx):
                 deconv_decoder = Conv1DTranspose(deconv_decoder, n_filters, kernel_size=self.kernel_size,
-                                                 activation='elu', name='deconv_decoder_{0}'.format(layer_counter),
+                                                 activation='relu', name='deconv_decoder_{0}'.format(layer_counter),
                                                  trainable=True, padding='valid')
                 if self.use_batch_norm:
                     deconv_decoder = BatchNormalization(name='deconv_decoder_batchnorm_{0}'.format(layer_counter))(
@@ -1264,7 +1268,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             seq2seq_model_for_training = None
         else:
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
-            reconstuctor = LayerForReconstruction(trainable=False)(deconv_decoder)
+            reconstuctor = LayerForReconstruction(tau=0.1, trainable=False)(deconv_decoder)
             reconstuctor_model = Model(deconv_decoder_input, reconstuctor, name='ReconstructorForVAE')
             vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
             seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
