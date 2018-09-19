@@ -20,7 +20,8 @@ import numpy as np
 from scipy.spatial import distance
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import DBSCAN
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 class BaseTokenizer:
@@ -858,23 +859,37 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
                               verbose: bool) -> Tuple[list, np.ndarray]:
-        clustering = AgglomerativeClustering(n_clusters=max_vocabulary_size)
+        distances = euclidean_distances(word_vectors[0:1], word_vectors[1:])[0]
+        distances = np.sort(distances)
+        max_distance = distances[min(word_vectors.shape[0] // 2, word_vectors.shape[0] // max_vocabulary_size)]
+        clustering = DBSCAN(n_jobs=-1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 2))),
+                            metric='cosine', eps=max_distance)
         if verbose:
             print('')
             print('----------------------------------------')
-            print('Agglomerative clustering with scikit-learn is started...')
+            print('DBSCAN clustering with scikit-learn is started...')
             print('----------------------------------------')
             print('n_samples = {0}'.format(word_vectors.shape[0]))
+            print('DBSCAN.min_samples = {0}'.format(clustering.min_samples))
+            print('DBSCAN.eps = {0}'.format(clustering.eps))
         predicted = clustering.fit_predict(word_vectors)
-        n_clusters = len(set(predicted.tolist()))
+        n_clusters = len(set(predicted.tolist()) - {-1})
+        n_clusters_with_noise = n_clusters + sum(map(lambda it: 1 if predicted[it] < 0 else 0, range(len(predicted))))
         if verbose:
-            print('Training of the agglomerative clustering is finished...')
-            print('Quantization is started...')
-        cluster_centers = np.zeros((n_clusters, word_vectors.shape[1]), dtype=np.float32)
-        frequencies = np.zeros((n_clusters,), dtype=np.int32)
+            print('DBSCAN training is finished...')
+            print('Number of "good" clusters is {0}.'.format(n_clusters))
+            print('Number of all clusters (including noisy data) is {0}.'.format(n_clusters_with_noise))
+            print('')
+            print('Quantization with K-Means is started...')
+        cluster_centers = np.zeros((n_clusters_with_noise, word_vectors.shape[1]), dtype=np.float32)
+        frequencies = np.zeros((n_clusters_with_noise,), dtype=np.int32)
+        n_noise_samples = 0
         word_clusters = list()
         for sample_idx in range(len(predicted)):
             cluster_idx = predicted[sample_idx]
+            if cluster_idx < 0:
+                cluster_idx = n_clusters + n_noise_samples
+                n_noise_samples += 1
             cluster_centers[cluster_idx] += word_vectors[sample_idx]
             word_clusters.append(cluster_idx)
             frequencies[cluster_idx] += 1
@@ -886,7 +901,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         del clustering
         del frequencies, predicted
         if verbose:
-            print('Quantization is finished...')
+            print('Quantization with K-Means is finished...')
             print('')
         return word_clusters, cluster_centers
 
