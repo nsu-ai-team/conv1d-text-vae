@@ -858,7 +858,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def clusterize_by_kmeans(word_vectors: np.ndarray, max_vocabulary_size: int,
                              verbose: bool) -> Tuple[list, np.ndarray]:
-        batch_size = max_vocabulary_size * 2
+        indices = np.arange(0, word_vectors.shape[0], 1, dtype=np.int32)
+        np.random.shuffle(indices)
+        batch_size = (3 * max_vocabulary_size) // 2
         if batch_size <= (word_vectors.shape[0] // 4):
             if verbose:
                 print('')
@@ -868,7 +870,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('n_samples = {0}'.format(word_vectors.shape[0]))
                 print('batch_size = {0}'.format(batch_size))
             clustering = MiniBatchKMeans(n_clusters=max_vocabulary_size, verbose=verbose, batch_size=batch_size)
-            word_clusters = clustering.fit_predict(word_vectors)
+            clustering.fit(word_vectors[indices])
         else:
             if verbose:
                 print('')
@@ -879,28 +881,35 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('n_jobs = {0}'.format(-1))
             clustering = KMeans(n_clusters=max_vocabulary_size, verbose=verbose, n_jobs=-1, copy_x=False)
             try:
-                word_clusters = clustering.fit_predict(word_vectors)
+                clustering.fit(word_vectors[indices])
             except:
                 clustering.n_jobs = -2
                 if verbose:
                     print('n_jobs = {0}'.format(clustering.n_jobs))
                 try:
-                    word_clusters = clustering.fit_predict(word_vectors)
+                    clustering.predict(word_vectors[indices])
                 except:
                     clustering.n_jobs = int(math.ceil(os.cpu_count() / 2.0))
                     if verbose:
                         print('n_jobs = {0}'.format(clustering.n_jobs))
                     try:
-                        word_clusters = clustering.fit_predict(word_vectors)
+                        clustering.predict(word_vectors[indices])
                     except:
                         clustering.n_jobs = 1
                         if verbose:
                             print('n_jobs = {0}'.format(clustering.n_jobs))
-                        word_clusters = clustering.fit_predict(word_vectors)
+                        clustering.predict(word_vectors[indices])
+        if verbose:
+            print('K-Means training is finished...')
+            print('Quantization with K-Means is started...')
+        word_clusters = clustering.predict(word_vectors).tolist()
         del word_vectors
         word_vectors = clustering.cluster_centers_
         del clustering
-        return word_clusters.tolist() if isinstance(word_clusters, np.ndarray) else word_clusters, word_vectors
+        if verbose:
+            print('Quantization with K-Means is finished...')
+            print('')
+        return word_clusters, word_vectors
 
     @staticmethod
     def get_vocabulary_and_word_vectors_from_fasttext(
