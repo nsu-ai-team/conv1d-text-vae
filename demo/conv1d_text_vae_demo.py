@@ -226,7 +226,7 @@ def main():
                         help='The text file with parallel English-Russian corpus for evaluation (testing).')
     parser.add_argument('--iter', dest='max_epochs', type=int, required=False, default=50,
                         help='Maximal number of training epochs.')
-    parser.add_argument('--onehot', 'onehot_size', type=int, required=False, default=None,
+    parser.add_argument('--onehot', dest='onehot_size', type=int, required=False, default=None,
                         help='Size of the target one-hot vector, i.e. target vocavulary size (target vocabulary will '
                              'be quantized to this size).')
     parser.add_argument('--batch', dest='batch_size', type=int, required=False, default=128, help='Mini-batch size.')
