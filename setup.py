@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     keywords=['vae', 'conv1d', 'nlp', 'keras', 'scikit-learn', 'fasttext'],
-    install_requires=['gensim>=3.5.0', 'h5py>=2.8.0', 'Keras>=2.2.0', 'numpy>=1.14.5', 'scipy>=1.1.0', 'nltk>=3.2.5',
-                      'scikit-learn>=0.19.1', 'requests>=2.19.1'],
+    install_requires=['annoy>=1.13', 'gensim>=3.5.0', 'h5py>=2.8.0', 'Keras>=2.2.0', 'numpy>=1.14.5', 'scipy>=1.1.0',
+                      'nltk>=3.2.5', 'scikit-learn>=0.19.1', 'requests>=2.19.1'],
     test_suite='tests'
 )
