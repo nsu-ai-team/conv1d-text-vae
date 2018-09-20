@@ -1188,7 +1188,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             return K.l2_normalize(x, axis=-1)
 
         def vae_loss(y_true, y_pred):
-            xent_loss = K.mean(K.sparse_categorical_crossentropy(target=y_true, output=y_pred, axis=-1), axis=-1)
+            true_words_in_batch = K.cast(K.argmax(y_true, axis=-1), dtype='int32')
+            end_words_in_batch = K.ones_like(true_words_in_batch, dtype='int32') * end_word_idx
+            mask = K.cast(K.not_equal(end_words_in_batch, true_words_in_batch), dtype='float32')
+            mask_sums = K.sum(mask, axis=-1)
+            xent_loss = K.sparse_categorical_crossentropy(target=y_true, output=y_pred, axis=-1)
+            xent_loss = K.sum(xent_loss, axis=-1) / mask_sums
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return xent_loss - kl_loss
 
@@ -1306,7 +1311,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if output_vectors is None:
             vae_model_for_training = None
             seq2seq_model_for_training = None
+            end_word_idx = None
         else:
+            end_word_idx = K.constant(output_vectors.shape[0] - 1, dtype='int32')
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
             reconstuctor = LayerForReconstruction(tau=0.1, trainable=False)(deconv_decoder)
             reconstuctor_model = Model(deconv_decoder_input, reconstuctor, name='ReconstructorForVAE')
