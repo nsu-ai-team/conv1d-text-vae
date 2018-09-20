@@ -1,11 +1,12 @@
 import copy
 import math
-import multiprocessing
 import os
 import re
 import tempfile
+import time
 from typing import List, Tuple, Union
 
+from annoy import AnnoyIndex
 from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
@@ -22,7 +23,7 @@ from scipy.spatial import distance
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_distances
 
 
@@ -861,16 +862,96 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
                               verbose: bool) -> Tuple[list, np.ndarray]:
-        clustering = KMeans(n_jobs=-1, n_clusters=max_vocabulary_size, copy_x=False, precompute_distances=True,
-                            verbose=verbose)
         if verbose:
             print('')
             print('----------------------------------------')
-            print('K_Means clustering with scikit-learn is started...')
+            print('Calculation of neighbourhood matrix is started...')
+            print('----------------------------------------')
+        word_vec_index = AnnoyIndex(word_vectors.shape[1])
+        for sample_idx in range(word_vectors.shape[0]):
+            word_vec_index.add_item(sample_idx, word_vectors[sample_idx])
+        word_vec_index.build(10)
+        if verbose:
+            print('AnnoyIndex has been built...')
+        n_max_neighbours = min(3 * max(1, int(word_vectors.shape[0] // max_vocabulary_size)), word_vectors.shape[0] - 1)
+        all_data = np.empty((word_vectors.shape[0] * n_max_neighbours,), dtype=np.float32)
+        all_rows = np.empty(all_data.shape, dtype=np.int32)
+        all_cols = np.empty(all_data.shape, dtype=np.int32)
+        cell_idx = 0
+        n_data_parts = 10
+        data_part_size = word_vectors.shape[0] // n_data_parts
+        data_part_counter = 0
+        start_time = time.time()
+        for sample_idx in range(word_vectors.shape[0]):
+            neighbours, distances = word_vec_index.get_nns_by_item(
+                sample_idx, n_max_neighbours, search_k=-1,
+                include_distances=True
+            )
+            for neighbour_idx in range(n_max_neighbours):
+                all_data[cell_idx] = distances[neighbour_idx]
+                all_rows[cell_idx] = sample_idx
+                all_cols[cell_idx] = neighbours[neighbour_idx]
+                cell_idx += 1
+            if data_part_size > 0:
+                if ((sample_idx + 1) % data_part_size) == 0:
+                    data_part_counter += 1
+                    if verbose:
+                        print('{0:.3f} seconds:\t{1}% of vectors has been processed...'.format(
+                            time.time() - start_time, data_part_counter * (100 // n_data_parts)))
+        if data_part_counter < n_data_parts:
+            if verbose:
+                print('{0:.3f} seconds:\t100% of vectors has been processed...'.format(time.time() - start_time))
+        del word_vec_index
+        if verbose:
+            print('Number of all elements is {0}.'.format(word_vectors.shape[0] * word_vectors.shape[0]))
+            print('Part of nonzero elements is {0:.3%}.'.format(
+                len(all_data) / float(word_vectors.shape[0] * word_vectors.shape[0])))
+        neighbourhood_matrix = csr_matrix((all_data, (all_rows, all_cols)),
+                                          shape=(word_vectors.shape[0], word_vectors.shape[0]))
+        max_distance = np.mean(all_data)
+        del all_data, all_rows, all_cols
+        clustering = DBSCAN(n_jobs=1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 4))),
+                            metric='precomputed', eps=max_distance)
+        if verbose:
+            print('')
+            print('----------------------------------------')
+            print('DBSCAN clustering with scikit-learn is started...')
             print('----------------------------------------')
             print('n_samples = {0}'.format(word_vectors.shape[0]))
-        predicted = clustering.fit_predict(word_vectors)
-        return predicted.tolist(), clustering.cluster_centers_
+            print('DBSCAN.min_samples = {0}'.format(clustering.min_samples))
+            print('DBSCAN.eps = {0}'.format(clustering.eps))
+        predicted = clustering.fit_predict(neighbourhood_matrix)
+        n_clusters = len(set(predicted.tolist()) - {-1})
+        n_clusters_with_noise = n_clusters + sum(map(lambda it: 1 if predicted[it] < 0 else 0, range(len(predicted))))
+        if verbose:
+            print('DBSCAN training is finished...')
+            print('Number of "good" clusters is {0}.'.format(n_clusters))
+            print('Number of all clusters (including noisy data) is {0}.'.format(n_clusters_with_noise))
+            print('')
+            print('Quantization with DBSCAN is started...')
+        cluster_centers = np.zeros((n_clusters_with_noise, word_vectors.shape[1]), dtype=np.float32)
+        frequencies = np.zeros((n_clusters_with_noise,), dtype=np.int32)
+        n_noise_samples = 0
+        word_clusters = list()
+        for sample_idx in range(len(predicted)):
+            cluster_idx = predicted[sample_idx]
+            if cluster_idx < 0:
+                cluster_idx = n_clusters + n_noise_samples
+                n_noise_samples += 1
+            cluster_centers[cluster_idx] += word_vectors[sample_idx]
+            word_clusters.append(cluster_idx)
+            frequencies[cluster_idx] += 1
+        for cluster_idx in range(cluster_centers.shape[0]):
+            cluster_centers[cluster_idx] /= frequencies[cluster_idx]
+            vector_norm = np.linalg.norm(cluster_centers[cluster_idx])
+            cluster_centers[cluster_idx] /= vector_norm
+        del word_vectors
+        del clustering
+        del frequencies, predicted
+        if verbose:
+            print('Quantization with DBSCAN is finished...')
+            print('')
+        return word_clusters, cluster_centers
 
     @staticmethod
     def get_vocabulary_and_word_vectors_from_fasttext(
