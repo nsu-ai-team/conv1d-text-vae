@@ -870,7 +870,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         word_vec_index = AnnoyIndex(word_vectors.shape[1])
         for sample_idx in range(word_vectors.shape[0]):
             word_vec_index.add_item(sample_idx, word_vectors[sample_idx])
-        word_vec_index.build(10)
+        word_vec_index.build(max(10, int(round(np.sqrt(word_vectors.shape[0])))))
         if verbose:
             print('AnnoyIndex has been built...')
         n_max_neighbours = min(3 * max(1, int(word_vectors.shape[0] // max_vocabulary_size)), word_vectors.shape[0] - 1)
