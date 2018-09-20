@@ -22,26 +22,8 @@ from scipy.spatial import distance
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_distances
-
-
-def calculate_neighbours(word_vectors: np.ndarray, start_pos: int, end_pos: int,
-                         number_of_neighbours: int) -> Tuple[List[float], List[int], List[int]]:
-    n = max(2, min(word_vectors.shape[0], number_of_neighbours))
-    data = []
-    rows = []
-    cols = []
-    for idx in range(start_pos, end_pos):
-        distances = cosine_distances(word_vectors[idx:(idx + 1)], word_vectors)[0]
-        indices_of_distances = np.argsort(distances)
-        for cur in indices_of_distances[1:n].tolist():
-            data.append(distances[cur])
-            rows.append(idx)
-            cols.append(cur)
-        del distances
-        del indices_of_distances
-    return data, rows, cols
 
 
 class BaseTokenizer:
@@ -879,96 +861,16 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
     @staticmethod
     def quantize_word_vectors(word_vectors: np.ndarray, max_vocabulary_size: int,
                               verbose: bool) -> Tuple[list, np.ndarray]:
+        clustering = KMeans(n_jobs=-1, n_clusters=max_vocabulary_size, copy_x=False, precompute_distances=True,
+                            verbose=verbose)
         if verbose:
             print('')
             print('----------------------------------------')
-            print('Calculation of neighbourhood matrix is started...')
-            print('----------------------------------------')
-        all_results = []
-        n_parts = min(os.cpu_count(), word_vectors.shape[0])
-        part_size = int(math.ceil(word_vectors.shape[0] / float(n_parts)))
-        number_of_neighbours = max(
-            2,
-            min(
-                word_vectors.shape[0] // 2,
-                (2 * word_vectors.shape[0]) // (max_vocabulary_size * 3)
-            )
-        )
-        with multiprocessing.Pool(processes=n_parts) as pool:
-            start_pos = 0
-            for _ in range(n_parts):
-                end_pos = min(start_pos + part_size, word_vectors.shape[0])
-                all_results.append(
-                    pool.apply_async(
-                        calculate_neighbours,
-                        args=(word_vectors, start_pos, end_pos, number_of_neighbours)
-                    )
-                )
-                start_pos = end_pos
-            pool.close()
-            pool.join()
-        all_data = []
-        all_rows = []
-        all_cols = []
-        for cur_result in all_results:
-            cur_result.successful()
-            cur_result_ = cur_result.get(timeout=None)
-            all_data += cur_result_[0]
-            all_rows += cur_result_[1]
-            all_cols += cur_result_[2]
-        all_data = np.array(all_data, dtype=np.float32)
-        all_rows = np.array(all_rows, dtype=np.int32)
-        all_cols = np.array(all_cols, dtype=np.int32)
-        if verbose:
-            print('Number of all elements is {0}.'.format(word_vectors.shape[0] * word_vectors.shape[0]))
-            print('Part of nonzero elements is {0:.3%}.'.format(
-                len(all_data) / float(word_vectors.shape[0] * word_vectors.shape[0])))
-        neighbourhood_matrix = csr_matrix((all_data, (all_rows, all_cols)),
-                                          shape=(word_vectors.shape[0], word_vectors.shape[0]))
-        max_distance = np.mean(all_data)
-        del all_data, all_rows, all_cols
-        clustering = DBSCAN(n_jobs=1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 4))),
-                            metric='precomputed', eps=max_distance)
-        if verbose:
-            print('')
-            print('----------------------------------------')
-            print('DBSCAN clustering with scikit-learn is started...')
+            print('K_Means clustering with scikit-learn is started...')
             print('----------------------------------------')
             print('n_samples = {0}'.format(word_vectors.shape[0]))
-            print('DBSCAN.min_samples = {0}'.format(clustering.min_samples))
-            print('DBSCAN.eps = {0}'.format(clustering.eps))
-        predicted = clustering.fit_predict(neighbourhood_matrix)
-        n_clusters = len(set(predicted.tolist()) - {-1})
-        n_clusters_with_noise = n_clusters + sum(map(lambda it: 1 if predicted[it] < 0 else 0, range(len(predicted))))
-        if verbose:
-            print('DBSCAN training is finished...')
-            print('Number of "good" clusters is {0}.'.format(n_clusters))
-            print('Number of all clusters (including noisy data) is {0}.'.format(n_clusters_with_noise))
-            print('')
-            print('Quantization with DBSCAN is started...')
-        cluster_centers = np.zeros((n_clusters_with_noise, word_vectors.shape[1]), dtype=np.float32)
-        frequencies = np.zeros((n_clusters_with_noise,), dtype=np.int32)
-        n_noise_samples = 0
-        word_clusters = list()
-        for sample_idx in range(len(predicted)):
-            cluster_idx = predicted[sample_idx]
-            if cluster_idx < 0:
-                cluster_idx = n_clusters + n_noise_samples
-                n_noise_samples += 1
-            cluster_centers[cluster_idx] += word_vectors[sample_idx]
-            word_clusters.append(cluster_idx)
-            frequencies[cluster_idx] += 1
-        for cluster_idx in range(cluster_centers.shape[0]):
-            cluster_centers[cluster_idx] /= frequencies[cluster_idx]
-            vector_norm = np.linalg.norm(cluster_centers[cluster_idx])
-            cluster_centers[cluster_idx] /= vector_norm
-        del word_vectors
-        del clustering
-        del frequencies, predicted
-        if verbose:
-            print('Quantization with DBSCAN is finished...')
-            print('')
-        return word_clusters, cluster_centers
+        predicted = clustering.fit_predict(word_vectors)
+        return predicted.tolist(), clustering.cluster_centers_
 
     @staticmethod
     def get_vocabulary_and_word_vectors_from_fasttext(
