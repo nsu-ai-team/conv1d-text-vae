@@ -19,7 +19,7 @@ from keras.utils import Sequence
 from nltk.tokenize.nist import NISTTokenizer
 import numpy as np
 from scipy.spatial import distance
-from scipy.sparse import coo_matrix
+from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.cluster import DBSCAN
@@ -923,7 +923,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             print('Number of all elements is {0}.'.format(word_vectors.shape[0] * word_vectors.shape[0]))
             print('Part of nonzero elements is {0:.3%}.'.format(
                 len(all_data) / float(word_vectors.shape[0] * word_vectors.shape[0])))
-        neighbourhood_matrix = coo_matrix((all_data, (all_rows, all_cols)),
+        neighbourhood_matrix = csr_matrix((all_data, (all_rows, all_cols)),
                                           shape=(word_vectors.shape[0], word_vectors.shape[0]))
         max_distance = np.mean(all_data)
         del all_data, all_rows, all_cols
