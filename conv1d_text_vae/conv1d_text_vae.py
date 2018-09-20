@@ -6,7 +6,6 @@ import tempfile
 import time
 from typing import List, Tuple, Union
 
-from annoy import AnnoyIndex
 from gensim.models.keyedvectors import FastTextKeyedVectors
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
@@ -18,13 +17,13 @@ from keras.models import Model
 from keras.optimizers import RMSprop, Nadam
 from keras.utils import Sequence
 from nltk.tokenize.nist import NISTTokenizer
+import nmslib
 import numpy as np
 from scipy.spatial import distance
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.cluster import DBSCAN
-from sklearn.metrics.pairwise import cosine_distances
 
 
 class BaseTokenizer:
@@ -867,48 +866,39 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             print('----------------------------------------')
             print('Calculation of neighbourhood matrix is started...')
             print('----------------------------------------')
-        word_vec_index = AnnoyIndex(word_vectors.shape[1])
-        for sample_idx in range(word_vectors.shape[0]):
-            word_vec_index.add_item(sample_idx, word_vectors[sample_idx])
-        word_vec_index.build(max(10, int(round(np.sqrt(word_vectors.shape[0])))))
+        word_vec_index = nmslib.init(method='hnsw', space='cosinesimil')
+        word_vec_index.addDataPointBatch(word_vectors)
+        word_vec_index.createIndex({'post': 2}, print_progress=verbose)
         if verbose:
-            print('AnnoyIndex has been built...')
+            print('HNSW index on Cosine Similarity has been built...')
         n_max_neighbours = min(3 * max(1, int(word_vectors.shape[0] // max_vocabulary_size)), word_vectors.shape[0] - 1)
+        all_neighbours = word_vec_index.knnQueryBatch(word_vectors, k=n_max_neighbours, num_threads=os.cpu_count())
         all_data = np.empty((word_vectors.shape[0] * n_max_neighbours,), dtype=np.float32)
         all_rows = np.empty(all_data.shape, dtype=np.int32)
         all_cols = np.empty(all_data.shape, dtype=np.int32)
         cell_idx = 0
-        n_data_parts = 10
-        data_part_size = word_vectors.shape[0] // n_data_parts
-        data_part_counter = 0
-        start_time = time.time()
         for sample_idx in range(word_vectors.shape[0]):
-            neighbours, distances = word_vec_index.get_nns_by_item(
-                sample_idx, n_max_neighbours, search_k=-1,
-                include_distances=True
-            )
-            for neighbour_idx in range(n_max_neighbours):
-                all_data[cell_idx] = distances[neighbour_idx]
-                all_rows[cell_idx] = sample_idx
-                all_cols[cell_idx] = neighbours[neighbour_idx]
-                cell_idx += 1
-            if data_part_size > 0:
-                if ((sample_idx + 1) % data_part_size) == 0:
-                    data_part_counter += 1
-                    if verbose:
-                        print('{0:.3f} seconds:\t{1}% of vectors has been processed...'.format(
-                            time.time() - start_time, data_part_counter * (100 // n_data_parts)))
-        if data_part_counter < n_data_parts:
-            if verbose:
-                print('{0:.3f} seconds:\t100% of vectors has been processed...'.format(time.time() - start_time))
+            cur_neighbours, cur_distances = all_neighbours[sample_idx]
+            for neighbour_idx in range(cur_neighbours.shape[0]):
+                dist_ = cur_distances[neighbour_idx]
+                if dist_ > 0.0:
+                    if cell_idx < all_data.shape[0]:
+                        all_data[cell_idx] = dist_
+                        all_rows[cell_idx] = sample_idx
+                        all_cols[cell_idx] = cur_neighbours[neighbour_idx]
+                    else:
+                        all_data = np.concatenate((all_data, np.array([dist_], dtype=np.float32)))
+                        all_rows = np.concatenate((all_rows, np.array([sample_idx], dtype=np.int32)))
+                        all_cols = np.concatenate((all_cols, np.array([cur_neighbours[neighbour_idx]], dtype=np.int32)))
+                    cell_idx += 1
         del word_vec_index
         if verbose:
             print('Number of all elements is {0}.'.format(word_vectors.shape[0] * word_vectors.shape[0]))
             print('Part of nonzero elements is {0:.3%}.'.format(
-                len(all_data) / float(word_vectors.shape[0] * word_vectors.shape[0])))
-        neighbourhood_matrix = csr_matrix((all_data, (all_rows, all_cols)),
+                cell_idx / float(word_vectors.shape[0] * word_vectors.shape[0])))
+        neighbourhood_matrix = csr_matrix((all_data[:cell_idx], (all_rows[:cell_idx], all_cols[:cell_idx])),
                                           shape=(word_vectors.shape[0], word_vectors.shape[0]))
-        max_distance = np.mean(all_data)
+        max_distance = np.mean(all_data[:cell_idx])
         del all_data, all_rows, all_cols
         clustering = DBSCAN(n_jobs=1, min_samples=max(1, int(word_vectors.shape[0] // (max_vocabulary_size * 4))),
                             metric='precomputed', eps=max_distance)
