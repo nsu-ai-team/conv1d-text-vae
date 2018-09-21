@@ -169,9 +169,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.use_attention = use_attention
 
     def __del__(self):
-        if hasattr(self, 'vae_encoder_') or hasattr(self, 'generator_encoder_') or hasattr(self, 'generator_decoder_'):
+        if hasattr(self, 'vae_encoder_') or hasattr(self, 'vae_decoder_') or hasattr(self, 'generator_encoder_') or \
+                hasattr(self, 'generator_decoder_'):
             if hasattr(self, 'vae_encoder_'):
                 del self.vae_encoder_
+            if hasattr(self, 'vae_decoder_'):
+                del self.vae_decoder_
             if hasattr(self, 'generator_encoder_'):
                 del self.generator_encoder_
             if hasattr(self, 'generator_decoder_'):
@@ -256,8 +259,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         if self.warm_start:
             all_weights = self.__dump_weights(self.vae_encoder_)
             del self.vae_encoder_, self.generator_encoder_, self.generator_decoder_
-            self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
-            seq2seq_model_for_training = self.__create_model(
+            self.vae_encoder_, self.vae_decoder_, self.generator_encoder_, self.generator_decoder_, \
+            vae_model_for_training, seq2seq_model_for_training = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
                 warm_start=True, output_vectors=output_word_vectors
             )
@@ -274,32 +277,26 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 self.input_text_size_ = max_text_size
             else:
                 self.input_text_size_ = self.input_text_size
-            self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, vae_model_for_training, \
-            seq2seq_model_for_training = self.__create_model(
+            self.vae_encoder_, self.vae_decoder_, self.generator_encoder_, self.generator_decoder_, \
+            vae_model_for_training, seq2seq_model_for_training = self.__create_model(
                 input_vector_size=input_word_vectors.shape[1], output_vector_size=output_word_vectors.shape[1],
                 output_vectors=output_word_vectors
             )
-        training_set_generator = TextPairSequence(
+        training_set_generator = SequenceForVAE(
             input_texts=input_texts[:len(X_train)], target_texts=target_texts[:len(y_train)], tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
             input_vocabulary=input_vocabulary, output_vocabulary=output_vocabulary,
-            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors,
-            output_text_size_in_characters=self.output_text_size_in_characters_,
-            output_char_index=self.target_char_index_,
-            target_texts_in_characters=target_texts_by_characters[:len(y_train)]
+            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors
         )
-        evaluation_set_generator = TextPairSequence(
+        evaluation_set_generator = SequenceForVAE(
             input_texts=input_texts[len(X_train):], target_texts=target_texts[len(y_train):], tokenizer=self.tokenizer,
             batch_size=self.batch_size, input_text_size=self.input_text_size_, output_text_size=self.output_text_size_,
             input_vocabulary=input_vocabulary, output_vocabulary=output_vocabulary,
-            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors,
-            output_text_size_in_characters=self.output_text_size_in_characters_,
-            output_char_index=self.target_char_index_,
-            target_texts_in_characters=target_texts_by_characters[len(y_train):]
+            input_word_vectors=input_word_vectors, output_word_vectors=output_word_vectors
         )
         callbacks = [
             EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
-            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3)
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2)
         ]
         tmp_weights_name = self.get_temp_name()
         try:
@@ -307,8 +304,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 ModelCheckpoint(filepath=tmp_weights_name, verbose=(1 if self.verbose else 0), save_best_only=True,
                                 save_weights_only=True)
             )
-            training_set_generator.for_vae = True
-            evaluation_set_generator.for_vae = True
             if self.verbose:
                 print('')
                 print('----------------------------------------')
@@ -326,19 +321,36 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if os.path.isfile(tmp_weights_name):
                 vae_model_for_training.load_weights(tmp_weights_name)
             del callbacks
-            for layer in seq2seq_model_for_training.layers:
-                if not layer.name.startswith('seq2seq'):
-                    layer.trainable = False
-            seq2seq_model_for_training.compile(optimizer=RMSprop(lr=self.lr, clipnorm=10.0),
-                                               loss='categorical_crossentropy')
-            training_set_generator.for_vae = False
-            evaluation_set_generator.for_vae = False
-            callbacks = [
-                EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
+            del training_set_generator, evaluation_set_generator
+        finally:
+            if os.path.isfile(tmp_weights_name):
+                os.remove(tmp_weights_name)
+        if self.warm_start:
+            for layer in vae_model_for_training.layers:
+                layer.trainable = True
+        vae_model_for_training._make_predict_function()
+        training_set_generator = SequenceForSeq2Seq(
+            input_texts=input_texts[:len(X_train)], target_texts=target_texts_by_characters[:len(y_train)],
+            tokenizer=self.tokenizer, batch_size=self.batch_size, input_text_size=self.input_text_size_,
+            output_text_size=self.output_text_size_in_characters_, input_vocabulary=input_vocabulary,
+            input_word_vectors=input_word_vectors, vae=vae_model_for_training, output_char_index=self.target_char_index_
+        )
+        evaluation_set_generator = SequenceForSeq2Seq(
+            input_texts=input_texts[len(X_train):], target_texts=target_texts_by_characters[len(y_train):],
+            tokenizer=self.tokenizer, batch_size=self.batch_size, input_text_size=self.input_text_size_,
+            output_text_size=self.output_text_size_in_characters_, input_vocabulary=input_vocabulary,
+            input_word_vectors=input_word_vectors, vae=vae_model_for_training, output_char_index=self.target_char_index_
+        )
+        callbacks = [
+            EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2)
+        ]
+        tmp_weights_name = self.get_temp_name()
+        try:
+            callbacks.append(
                 ModelCheckpoint(filepath=tmp_weights_name, verbose=(1 if self.verbose else 0), save_best_only=True,
-                                save_weights_only=True),
-                ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3)
-            ]
+                                save_weights_only=True)
+            )
             if self.verbose:
                 print('')
                 print('----------------------------------------')
@@ -356,12 +368,10 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if os.path.isfile(tmp_weights_name):
                 seq2seq_model_for_training.load_weights(tmp_weights_name)
             del callbacks
+            del training_set_generator, evaluation_set_generator
         finally:
             if os.path.isfile(tmp_weights_name):
                 os.remove(tmp_weights_name)
-        if self.warm_start:
-            for layer in vae_model_for_training.layers:
-                layer.trainable = True
         del vae_model_for_training
         del seq2seq_model_for_training
         return self
@@ -381,7 +391,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             special_symbols = None
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
                                                  self.input_embeddings, special_symbols):
-            outputs_for_batch = self.vae_encoder_.predict(data_for_batch)
+            outputs_for_batch = self.vae_encoder_.predict_on_batch(data_for_batch)
             start_pos = 0 if outputs is None else outputs.shape[0]
             if (start_pos + outputs_for_batch.shape[0]) <= len(X):
                 n = outputs_for_batch.shape[0]
@@ -415,7 +425,10 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             print('Prediction of texts with the VAE is started...')
         for data_for_batch in self.texts_to_data(X, self.batch_size, self.input_text_size_, self.tokenizer,
                                                  self.input_embeddings, special_symbols):
-            state_value = self.generator_encoder_.predict(data_for_batch)
+            reconstructed_word_vectors = self.postprocess_reconstructed_word_vectors(
+                self.vae_decoder_.predict_on_batch(self.vae_encoder_.predict_on_batch(data_for_batch))
+            )
+            state_value = self.generator_encoder_.predict_on_batch(reconstructed_word_vectors)
             batch_size = data_for_batch.shape[0]
             end_pos = start_pos + data_for_batch.shape[0]
             if end_pos > n_all_texts:
@@ -429,7 +442,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 stop_conditions.append(False)
                 decoded_sentences.append([])
             while not all(stop_conditions):
-                output_tokens, state_value = self.generator_decoder_.predict([target_seq, state_value])
+                output_tokens, state_value = self.generator_decoder_.predict_on_batch([target_seq, state_value])
                 indices_of_sampled_tokens = np.argmax(output_tokens[:, -1, :], axis=1)
                 for text_idx in range(batch_size):
                     if stop_conditions[text_idx]:
@@ -510,9 +523,34 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.tokenizer = params['tokenizer']
 
     def check_is_fitted(self):
-        check_is_fitted(self, ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'generator_encoder_',
-                               'generator_decoder_', 'output_text_size_in_characters_', 'target_char_index_',
-                               'reverse_target_char_index_'])
+        check_is_fitted(self, ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'vae_decoder_',
+                               'generator_encoder_', 'generator_decoder_', 'output_text_size_in_characters_',
+                               'target_char_index_', 'reverse_target_char_index_'])
+
+    @staticmethod
+    def postprocess_reconstructed_word_vectors(word_vectors: np.ndarray):
+        if len(word_vectors.shape) != 3:
+            raise ValueError('The `word_vectors` parameter is wrong! Expected 3-D array, got {0}-D array!'.format(
+                len(word_vectors.shape)))
+        prepared_word_vectors = np.zeros(
+            shape=(word_vectors.shape[0], word_vectors.shape[1], word_vectors.shape[2] - 1),
+            dtype=word_vectors.dtype
+        )
+        end_idx = np.full(shape=(word_vectors.shape[0],), fill_value=word_vectors.shape[1], dtype=np.int32)
+        for sample_idx in range(word_vectors.shape[0]):
+            for time_idx in range(word_vectors.shape[1]):
+                best_word_idx = np.argmax(word_vectors[sample_idx][time_idx])
+                if best_word_idx == (word_vectors.shape[2] - 1):
+                    end_idx[sample_idx] = time_idx
+                    break
+        for sample_idx in range(word_vectors.shape[0]):
+            n = end_idx[sample_idx]
+            for time_idx in range(n):
+                prepared_word_vectors[sample_idx][time_idx] = \
+                    word_vectors[sample_idx][time_idx][:(word_vectors.shape[2] - 1)]
+                vector_norm = np.linalg.norm(prepared_word_vectors[sample_idx][time_idx])
+                prepared_word_vectors[sample_idx][time_idx] /= vector_norm
+        return prepared_word_vectors
 
     @staticmethod
     def find_best_words(word_vector: np.ndarray, embeddings_model: FastTextKeyedVectors, n: int,
@@ -1110,16 +1148,19 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         state['output_embeddings'] = (None if (self.input_embeddings is self.output_embeddings) else
                                       self.__dump_fasttext_model(self.output_embeddings))
         if all(map(lambda it: hasattr(self, it),
-                   ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'generator_encoder_', 'generator_decoder_',
-                    'output_text_size_in_characters_', 'target_char_index_', 'reverse_target_char_index_'])):
+                   ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'vae_decoder_', 'generator_encoder_',
+                    'generator_decoder_', 'output_text_size_in_characters_', 'target_char_index_',
+                    'reverse_target_char_index_'])):
             state['input_text_size_'] = self.input_text_size_
             state['output_text_size_'] = self.output_text_size_
             state['output_text_size_in_characters_'] = self.output_text_size_in_characters_
             state['target_char_index_'] = copy.deepcopy(self.target_char_index_)
             state['reverse_target_char_index_'] = copy.deepcopy(self.reverse_target_char_index_)
             state['weights_'] = {
-                'encoder': self.__dump_weights(self.generator_encoder_),
-                'decoder': self.__dump_weights(self.generator_decoder_)
+                'vae_encoder': self.__dump_weights(self.vae_encoder_),
+                'vae_decoder': self.__dump_weights(self.vae_decoder_),
+                'seq2seq_encoder': self.__dump_weights(self.generator_encoder_),
+                'seq2seq_decoder': self.__dump_weights(self.generator_decoder_)
             }
         return state
 
@@ -1140,9 +1181,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         state['output_embeddings'] = (state['input_embeddings'] if state['output_embeddings'] is None
                                       else self.__load_fasttext_model(state['output_embeddings']))
         self.check_params(**state)
-        if hasattr(self, 'vae_encoder_') or hasattr(self, 'generator_encoder_') or hasattr(self, 'generator_decoder_'):
+        if hasattr(self, 'vae_encoder_') or hasattr(self, 'vae_decoder_') or hasattr(self, 'generator_encoder_') or \
+                hasattr(self, 'generator_decoder_'):
             if hasattr(self, 'vae_encoder_'):
                 del self.vae_encoder_
+            if hasattr(self, 'vae_decoder_'):
+                del self.vae_decoder_
             if hasattr(self, 'generator_encoder_'):
                 del self.generator_encoder_
             if hasattr(self, 'generator_decoder_'):
@@ -1154,55 +1198,61 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if not isinstance(state['weights_'], dict):
                 raise ValueError('Weights are wrong! Expected `{0}`, got `{1}`.'.format(type({'a': 1, 'b': 2}),
                                                                                         type(state['weights_'])))
-            if 'encoder' not in state['weights_']:
-                raise ValueError('Weights are wrong! The key `encoder` is not found.')
-            if 'decoder' not in state['weights_']:
-                raise ValueError('Weights are wrong! The key `generator` is not found.')
+            if 'vae_encoder' not in state['weights_']:
+                raise ValueError('Weights are wrong! The key `vae_encoder` is not found.')
+            if 'vae_decoder' not in state['weights_']:
+                raise ValueError('Weights are wrong! The key `vae_decoder` is not found.')
+            if 'seq2seq_encoder' not in state['weights_']:
+                raise ValueError('Weights are wrong! The key `seq2seq_encoder` is not found.')
+            if 'seq2seq_decoder' not in state['weights_']:
+                raise ValueError('Weights are wrong! The key `seq2seq_decoder` is not found.')
             self.input_text_size_ = state['input_text_size_']
             self.output_text_size_ = state['output_text_size_']
             self.output_text_size_in_characters_ = state['output_text_size_in_characters_']
             self.target_char_index_ = copy.deepcopy(state['target_char_index_'])
             self.reverse_target_char_index_ = copy.deepcopy(state['reverse_target_char_index_'])
-            self.vae_encoder_, self.generator_encoder_, self.generator_decoder_, _, _ = self.__create_model(
-                input_vector_size=self.calc_vector_size(
-                    self.input_embeddings,
-                    self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
-                ),
-                output_vector_size=self.calc_vector_size(
-                    self.output_embeddings,
-                    self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
+            self.vae_encoder_, self.vae_decoder_, self.generator_encoder_, self.generator_decoder_, _, _ = \
+                self.__create_model(
+                    input_vector_size=self.calc_vector_size(
+                        self.input_embeddings,
+                        self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
+                    ),
+                    output_vector_size=self.calc_vector_size(
+                        self.output_embeddings,
+                        self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
+                    )
                 )
-            )
-            self.__load_weights(self.generator_encoder_, state['weights_']['encoder'])
-            self.__load_weights(self.generator_decoder_, state['weights_']['decoder'])
+            self.__load_weights(self.vae_encoder_, state['weights_']['vae_encoder'])
+            self.__load_weights(self.vae_decoder_, state['weights_']['vae_decoder'])
+            self.__load_weights(self.generator_encoder_, state['weights_']['seq2seq_encoder'])
+            self.__load_weights(self.generator_decoder_, state['weights_']['seq2seq_decoder'])
 
     def __create_model(self, input_vector_size: int, output_vector_size: int, output_vectors: np.ndarray=None,
-                       warm_start: bool=False) -> Tuple[Model, Model, Model, Model, Model]:
+                       warm_start: bool=False) -> Tuple[Model, Model, Model, Model, Model, Model]:
 
         def sampling(args):
             z_mean_, z_log_var_ = args
             epsilon = K.random_normal(shape=(K.shape(z_mean_)[0], self.latent_dim), mean=0.0, stddev=1.0)
             return z_mean_ + K.exp(z_log_var_) * epsilon
 
-        def normalize_outputs(x):
-            return K.l2_normalize(x, axis=-1)
-
         def vae_loss(y_true, y_pred):
-            true_words_in_batch = K.cast(K.argmax(y_true, axis=-1), dtype='int32')
-            end_words_in_batch = K.ones_like(true_words_in_batch, dtype='int32') * end_word_idx
-            mask = K.cast(K.not_equal(end_words_in_batch, true_words_in_batch), dtype='float32')
-            mask_sums = K.sum(mask, axis=-1)
-            xent_loss = K.sparse_categorical_crossentropy(target=y_true, output=y_pred, axis=-1)
-            xent_loss = K.sum(xent_loss, axis=-1) / mask_sums
+            y_pred_ = K.softmax(
+                (1.0 / tau) * K.dot(K.l2_normalize(y_pred, axis=-1), weights_of_layer_for_reconstruction),
+                axis=-1
+            )
+            xent_loss = K.categorical_crossentropy(target=y_true, output=y_pred_, axis=-1)
+            mask = K.cast(K.any(K.not_equal(y_true, 0.0), axis=-1), dtype=K.dtype(xent_loss))
+            xent_loss = xent_loss * mask
+            xent_loss = K.sum(xent_loss, axis=-1) / K.sum(mask, axis=-1)
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return xent_loss - kl_loss
 
         def attention_for_seq2seq_encoder(inputs):
             a = Permute((2, 1), name='attention_aux1')(inputs)
-            a = Reshape((output_vector_size, self.output_text_size_), name='attention_aux2')(a)
+            a = Reshape((output_vector_size - 1, self.output_text_size_), name='attention_aux2')(a)
             a = Dense(self.output_text_size_, activation='softmax', name='attention_aux3')(a)
             a = Lambda(lambda x: K.mean(x, axis=1), name='attention_dim_reduction')(a)
-            a = RepeatVector(output_vector_size, name='attention_aux4')(a)
+            a = RepeatVector(output_vector_size - 1, name='attention_aux4')(a)
             a_probs = Permute((2, 1), name='attention_vec')(a)
             output_attention_mul = Multiply(name='attention_mul')([inputs, a_probs])
             return output_attention_mul
@@ -1222,10 +1272,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 super(LayerForReconstruction, self).__init__(**kwargs)
 
             def call(self, inputs, **kwargs):
-                return K.softmax((1.0 / self.tau) * K.dot(inputs, weights_of_layer_for_reconstruction), axis=-1)
+                return K.softmax((1.0 / self.tau) * K.dot(K.l2_normalize(inputs, axis=-1),
+                                                          weights_of_layer_for_reconstruction), axis=-1)
 
             def compute_output_shape(self, input_shape):
-                return input_shape[0], input_shape[1], K.shape(weights_of_layer_for_reconstruction)[0]
+                return input_shape[0], input_shape[1], output_vectors.shape[0]
 
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
@@ -1284,16 +1335,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             deconv_decoder = Cropping1D(cropping=(0, cropping_size), name='deconv_decoder_cropping')(deconv_decoder)
         deconv_decoder = Conv1D(filters=output_vector_size, kernel_size=self.kernel_size, activation='linear',
                                 padding='same', name='deconv_decoder_embeddings', trainable=True)(deconv_decoder)
-        deconv_decoder = Lambda(normalize_outputs, name='deconv_decoder_normalize')(deconv_decoder)
         deconv_decoder_model = Model(deconv_decoder_input, deconv_decoder, name='DecoderForVAE')
+        seq2seq_encoder_input = Input(shape=(self.output_text_size_, output_vector_size - 1),
+                                      name='seq2seq_encoder_input')
         if self.use_attention:
             _, seq2seq_encoder_state = CuDNNGRU(
                 self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
-            )(attention_for_seq2seq_encoder(deconv_decoder_model(z_mean)))
+            )(attention_for_seq2seq_encoder(seq2seq_encoder_input))
         else:
             _, seq2seq_encoder_state = CuDNNGRU(
                 self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
-            )(deconv_decoder_model(z_mean))
+            )(seq2seq_encoder_input)
         seq2seq_decoder_input = Input(shape=(None, len(self.target_char_index_)), name='seq2seq_decoder_input')
         seq2seq_decoder_gru = CuDNNGRU(self.n_recurrent_units, return_sequences=True, return_state=True,
                                        name='seq2seq_decoder_gru')
@@ -1301,26 +1353,26 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         seq2seq_decoder_dense = Dense(len(self.target_char_index_), activation='softmax', name='seq2seq_decoder_dense')
         seq2seq_decoder = seq2seq_decoder_dense(seq2seq_decoder)
         vae_encoder_model = Model(encoder_input, z_mean, name='EncoderForVAE')
-        generator_encoder_model = Model(encoder_input, seq2seq_encoder_state, name='EncoderForGenerator')
+        generator_encoder_model = Model(seq2seq_encoder_input, seq2seq_encoder_state, name='EncoderForGenerator')
         seq2seq_state_input = Input(shape=(self.n_recurrent_units,))
         seq2seq_decoder_output, seq2seq_decoder_state = seq2seq_decoder_gru(
             seq2seq_decoder_input, initial_state=seq2seq_state_input)
         seq2seq_decoder_output = seq2seq_decoder_dense(seq2seq_decoder_output)
         generator_decoder_model = Model([seq2seq_decoder_input, seq2seq_state_input],
                                         [seq2seq_decoder_output, seq2seq_decoder_state], name='DecoderForGenerator')
+        tau = 0.1
+        vae_model_for_training = Model(encoder_input, deconv_decoder_model(z), name='FullVAE')
         if output_vectors is None:
             vae_model_for_training = None
             seq2seq_model_for_training = None
-            end_word_idx = None
+            weights_of_layer_for_reconstruction = None
         else:
-            end_word_idx = K.constant(output_vectors.shape[0] - 1, dtype='int32')
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
-            reconstuctor = LayerForReconstruction(tau=0.1, trainable=False)(deconv_decoder)
-            reconstuctor_model = Model(deconv_decoder_input, reconstuctor, name='ReconstructorForVAE')
-            vae_model_for_training = Model(encoder_input, reconstuctor_model(z), name='VAE_for_training')
-            seq2seq_model_for_training = Model([encoder_input, seq2seq_decoder_input], seq2seq_decoder,
+            seq2seq_model_for_training = Model([seq2seq_encoder_input, seq2seq_decoder_input], seq2seq_decoder,
                                                name='seq2seq_for_training')
             vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss)
+            seq2seq_model_for_training.compile(optimizer=RMSprop(lr=self.lr, clipnorm=10.0),
+                                               loss='categorical_crossentropy')
             if self.verbose:
                 print('')
                 print('ENCODER:')
@@ -1331,15 +1383,14 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 print('')
                 print('SEQUENCE-TO-SEQUENCE:')
                 seq2seq_model_for_training.summary()
-        return vae_encoder_model, generator_encoder_model, generator_decoder_model, vae_model_for_training, \
-               seq2seq_model_for_training
+        return vae_encoder_model, deconv_decoder_model, generator_encoder_model, generator_decoder_model, \
+               vae_model_for_training, seq2seq_model_for_training
 
 
-class TextPairSequence(Sequence):
+class SequenceForVAE(Sequence):
     def __init__(self, tokenizer: BaseTokenizer, input_texts: tuple, target_texts: tuple, batch_size: int,
                  input_text_size: int, output_text_size: int, input_vocabulary: dict, input_word_vectors: np.ndarray,
-                 output_vocabulary: dict, output_word_vectors: np.ndarray, target_texts_in_characters: tuple,
-                 output_text_size_in_characters: int, output_char_index: dict, for_vae: bool=True):
+                 output_vocabulary: dict, output_word_vectors: np.ndarray):
         self.tokenizer = tokenizer
         self.input_texts = input_texts
         self.target_texts = target_texts
@@ -1352,10 +1403,6 @@ class TextPairSequence(Sequence):
         self.output_vocabulary = output_vocabulary
         self.input_word_vectors = input_word_vectors
         self.output_word_vectors = output_word_vectors
-        self.target_texts_in_characters = target_texts_in_characters
-        self.output_text_size_in_characters = output_text_size_in_characters
-        self.output_char_index = output_char_index
-        self.for_vae = for_vae
 
     def __len__(self):
         return self.n_batches
@@ -1364,17 +1411,9 @@ class TextPairSequence(Sequence):
         start_pos = idx * self.batch_size
         end_pos = start_pos + self.batch_size
         input_vector_size = self.input_word_vectors.shape[1]
+        output_vocabulary_size = self.output_word_vectors.shape[0]
         input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
-        target_data = np.full((self.batch_size, self.output_text_size),
-                              fill_value=self.output_vocabulary[''], dtype=np.int32)
-        generator_input_data = np.zeros(
-            (self.batch_size, self.output_text_size_in_characters, len(self.output_char_index)),
-            dtype=np.float32
-        )
-        generator_target_data = np.zeros(
-            (self.batch_size, self.output_text_size_in_characters, len(self.output_char_index)),
-            dtype=np.float32
-        )
+        target_data = np.zeros((self.batch_size, self.output_text_size, output_vocabulary_size), dtype=np.float32)
         idx_in_batch = 0
         for src_text_idx in range(start_pos, end_pos):
             prep_text_idx = src_text_idx
@@ -1388,30 +1427,81 @@ class TextPairSequence(Sequence):
                     token = input_text[time_idx]
                 input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
             target_text = self.target_texts[prep_text_idx]
+            prev_token = None
             for time_idx in range(self.output_text_size):
                 if time_idx >= len(target_text):
                     token = ''
                 else:
                     token = target_text[time_idx]
-                target_data[idx_in_batch, time_idx] = self.output_vocabulary[token]
-            target_text_in_characters = self.target_texts_in_characters[prep_text_idx]
+                if prev_token is None:
+                    target_data[idx_in_batch, time_idx, self.output_vocabulary[token]] = 1.0
+                else:
+                    if prev_token != '':
+                        target_data[idx_in_batch, time_idx, self.output_vocabulary[token]] = 1.0
+                prev_token = token
+            idx_in_batch += 1
+        return input_data, target_data
+
+
+class SequenceForSeq2Seq(Sequence):
+    def __init__(self, tokenizer: BaseTokenizer, input_texts: tuple, target_texts: tuple, batch_size: int,
+                 input_text_size: int, output_text_size: int, input_vocabulary: dict, input_word_vectors: np.ndarray,
+                 output_char_index: dict, vae: Union[Model, object]):
+        self.tokenizer = tokenizer
+        self.input_texts = input_texts
+        self.target_texts = target_texts
+        self.batch_size = batch_size
+        self.input_text_size = input_text_size
+        self.output_text_size = output_text_size
+        self.n_text_pairs = len(input_texts)
+        self.n_batches = self.n_text_pairs // self.batch_size
+        self.input_vocabulary = input_vocabulary
+        self.input_word_vectors = input_word_vectors
+        self.output_char_index = output_char_index
+        self.vae = vae
+
+    def __len__(self):
+        return self.n_batches
+
+    def __getitem__(self, idx):
+        start_pos = idx * self.batch_size
+        end_pos = start_pos + self.batch_size
+        input_vector_size = self.input_word_vectors.shape[1]
+        input_data = np.zeros((self.batch_size, self.input_text_size, input_vector_size), dtype=np.float32)
+        generator_input_data = np.zeros((self.batch_size, self.output_text_size, len(self.output_char_index)),
+                                        dtype=np.float32)
+        generator_target_data = np.zeros((self.batch_size, self.output_text_size, len(self.output_char_index)),
+                                         dtype=np.float32
+                                         )
+        idx_in_batch = 0
+        for src_text_idx in range(start_pos, end_pos):
+            prep_text_idx = src_text_idx
+            while prep_text_idx >= self.n_text_pairs:
+                prep_text_idx = prep_text_idx - self.n_text_pairs
+            input_text = self.input_texts[prep_text_idx]
+            for time_idx in range(self.input_text_size):
+                if time_idx >= len(input_text):
+                    token = ''
+                else:
+                    token = input_text[time_idx]
+                input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
+            target_text_in_characters = self.target_texts[prep_text_idx]
             generator_input_data[idx_in_batch, 0, self.output_char_index[Conv1dTextVAE.SEQUENCE_BEGIN]] = 1.0
             T = len(target_text_in_characters)
-            for t in range(min(T, self.output_text_size_in_characters - 1)):
+            for t in range(min(T, self.output_text_size - 1)):
                 char = target_text_in_characters[t]
                 generator_input_data[idx_in_batch, t + 1, self.output_char_index[char]] = 1.0
                 generator_target_data[idx_in_batch, t, self.output_char_index[char]] = 1.0
-            if T < (self.output_text_size_in_characters - 1):
-                for t in range(T, self.output_text_size_in_characters - 1):
+            if T < (self.output_text_size - 1):
+                for t in range(T, self.output_text_size - 1):
                     generator_input_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
                     generator_target_data[idx_in_batch, t, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
-            t = self.output_text_size_in_characters - 2
+            t = self.output_text_size - 2
             generator_input_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
             generator_target_data[idx_in_batch, t, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
             generator_target_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
             idx_in_batch += 1
-        if self.for_vae:
-            res = (input_data, target_data)
-        else:
-            res = ([input_data, generator_input_data], generator_target_data)
-        return res
+        reconstructed_word_vectors = Conv1dTextVAE.postprocess_reconstructed_word_vectors(
+            self.vae.predict_on_batch(input_data)
+        )
+        return [reconstructed_word_vectors, generator_input_data], generator_target_data

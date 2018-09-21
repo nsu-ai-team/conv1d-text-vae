@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 from gensim.models.keyedvectors import FastTextKeyedVectors
 
-from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, TextPairSequence
+from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, SequenceForVAE, SequenceForSeq2Seq
 from conv1d_text_vae.fasttext_loading import load_russian_fasttext_rusvectores
 
 
@@ -57,7 +57,215 @@ class TestDefaultTokenizer(unittest.TestCase):
         self.assertEqual(self.tokenizer.tokenize_into_words(s), res.tokenize_into_words(s))
 
 
-class TextTextPairSequence(unittest.TestCase):
+class TextSequenceForVAE(unittest.TestCase):
+    fasttext_model = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.fasttext_model = load_russian_fasttext_rusvectores()
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.fasttext_model
+
+    def test_positive01(self):
+        src_data = [
+            'как определить тип личности по форме носа: метод аристотеля',
+            'какие преступления вдохновили достоевского',
+            'майк тайсон - о пользе чтения'
+        ]
+        batch_size = 2
+        input_text_size = 10
+        output_text_size = 9
+        tokenizer = DefaultTokenizer()
+        input_texts = tuple(map(
+            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
+            src_data
+        ))
+        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
+            input_texts,
+            self.fasttext_model,
+            None
+        )
+        generator = SequenceForVAE(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
+                                   batch_size=batch_size, input_text_size=input_text_size,
+                                   output_text_size=output_text_size, input_vocabulary=vocabulary,
+                                   output_vocabulary=vocabulary, input_word_vectors=word_vectors,
+                                   output_word_vectors=word_vectors)
+        true_length = 1
+        predicted_length = len(generator)
+        self.assertEqual(true_length, predicted_length)
+        text_idx = 0
+        for batch_idx in range(true_length):
+            generated_data = generator[batch_idx]
+            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
+            self.assertIsInstance(generated_data[0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data[0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
+            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 2),
+                             generated_data[0].shape, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual((batch_size, output_text_size, word_vectors.shape[0]),
+                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
+            for sample_idx in range(batch_size):
+                n_tokens = len(input_texts[text_idx])
+                for token_idx in range(input_text_size):
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
+                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                    if token_idx < n_tokens:
+                        self.assertAlmostEqual(
+                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                            0.0,
+                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                        )
+                    else:
+                        self.assertAlmostEqual(
+                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                            1.0,
+                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                        )
+                for token_idx in range(output_text_size):
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 1.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        max_word_idx = np.argmax(generated_data[1][sample_idx][token_idx])
+                        self.assertAlmostEqual(generated_data[1][sample_idx][token_idx][max_word_idx], 1.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
+                            self.assertLess(max_word_idx, vocabulary[''],
+                                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        else:
+                            self.assertEqual(
+                                max_word_idx,
+                                vocabulary[''],
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                    else:
+                        self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 0.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                if text_idx < (len(input_texts) - 1):
+                    text_idx += 1
+
+    def test_positive02(self):
+        src_data = [
+            'как определить тип личности\tпо форме носа:\nметод аристотеля',
+            'какие преступления вдохновили достоевского',
+            'майк тайсон - о пользе чтения'
+        ]
+        special_symbols = ('\t', '\n')
+        batch_size = 2
+        input_text_size = 10
+        output_text_size = 9
+        tokenizer = DefaultTokenizer(special_symbols=set(special_symbols))
+        input_texts = tuple(map(
+            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
+            src_data
+        ))
+        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
+            input_texts,
+            self.fasttext_model,
+            special_symbols
+        )
+        generator = SequenceForVAE(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
+                                   batch_size=batch_size, input_text_size=input_text_size,
+                                   output_text_size=output_text_size, input_vocabulary=vocabulary,
+                                   output_vocabulary=vocabulary, input_word_vectors=word_vectors,
+                                   output_word_vectors=word_vectors)
+        true_length = 1
+        predicted_length = len(generator)
+        self.assertEqual(true_length, predicted_length)
+        text_idx = 0
+        for batch_idx in range(true_length):
+            generated_data = generator[batch_idx]
+            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
+            self.assertIsInstance(generated_data[0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data[0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
+            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 4),
+                             generated_data[0].shape, msg='batch_idx={0}'.format(batch_idx))
+            self.assertEqual((batch_size, output_text_size, word_vectors.shape[0]),
+                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
+            for sample_idx in range(batch_size):
+                tokens = input_texts[text_idx]
+                n_tokens = len(tokens)
+                for token_idx in range(input_text_size):
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
+                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                    if token_idx < n_tokens:
+                        self.assertAlmostEqual(
+                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
+                            0.0,
+                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                        )
+                        if tokens[token_idx] in special_symbols:
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
+                                                                         special_symbols.index(tokens[token_idx])],
+                                1.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                        else:
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                    else:
+                        self.assertAlmostEqual(
+                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
+                            1.0,
+                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                        )
+                for token_idx in range(output_text_size):
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 1.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        max_word_idx = np.argmax(generated_data[1][sample_idx][token_idx])
+                        self.assertAlmostEqual(generated_data[1][sample_idx][token_idx][max_word_idx], 1.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
+                            if tokens[token_idx] in special_symbols:
+                                self.assertEqual(
+                                    max_word_idx,
+                                    vocabulary[tokens[token_idx]],
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                            else:
+                                self.assertLess(
+                                    max_word_idx,
+                                    vocabulary[''] - len(special_symbols),
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                        else:
+                            self.assertEqual(
+                                max_word_idx,
+                                vocabulary[''],
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                    else:
+                        self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 0.0,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                if text_idx < (len(input_texts) - 1):
+                    text_idx += 1
+
+
+class FakeVAE():
+    def predict(self, x):
+        return x
+
+    def predict_on_batch(self, x):
+        return x
+
+
+class TextSequenceForSeq2Seq(unittest.TestCase):
     fasttext_model = None
 
     @classmethod
@@ -77,7 +285,6 @@ class TextTextPairSequence(unittest.TestCase):
         ]
         batch_size = 2
         input_text_size = 10
-        output_text_size = 9
         tokenizer = DefaultTokenizer()
         input_texts = tuple(map(
             lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
@@ -95,14 +302,11 @@ class TextTextPairSequence(unittest.TestCase):
             self.fasttext_model,
             None
         )
-        generator = TextPairSequence(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
-                                     batch_size=batch_size, input_text_size=input_text_size,
-                                     output_text_size=output_text_size, input_vocabulary=vocabulary,
-                                     output_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                     output_word_vectors=word_vectors,
-                                     target_texts_in_characters=input_texts_as_characters,
-                                     output_text_size_in_characters=61, output_char_index=output_char_index,
-                                     for_vae=False)
+        generator = SequenceForSeq2Seq(tokenizer=tokenizer, input_texts=input_texts,
+                                       target_texts=input_texts_as_characters, batch_size=batch_size,
+                                       input_text_size=input_text_size, output_text_size=61,
+                                       input_vocabulary=vocabulary, input_word_vectors=word_vectors,
+                                       output_char_index=output_char_index, vae=FakeVAE())
         true_length = 1
         predicted_length = len(generator)
         self.assertEqual(true_length, predicted_length)
@@ -119,30 +323,22 @@ class TextTextPairSequence(unittest.TestCase):
             self.assertEqual(len(generated_data[0][1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
             self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
             self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 2),
+            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 1),
                              generated_data[0][0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size_in_characters, len(all_characters)),
+            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
                              generated_data[0][1].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size_in_characters, len(all_characters)),
+            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
                              generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
             for sample_idx in range(batch_size):
                 n_tokens = len(input_texts[text_idx])
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                     if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        true_norm_value = 1.0
                     else:
-                        self.assertAlmostEqual(
-                            generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                for time_idx in range(generator.output_text_size_in_characters):
+                        true_norm_value = 0.0
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][0][sample_idx][token_idx]), true_norm_value,
+                                           places=4, msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                for time_idx in range(generator.output_text_size):
                     for char_idx in range(len(all_characters)):
                         self.assertTrue((abs(generated_data[0][1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
                                         (abs(generated_data[0][1][sample_idx][time_idx][char_idx]) < EPS))
@@ -194,14 +390,11 @@ class TextTextPairSequence(unittest.TestCase):
             self.fasttext_model,
             special_symbols
         )
-        generator = TextPairSequence(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
-                                     batch_size=batch_size, input_text_size=input_text_size,
-                                     output_text_size=output_text_size, input_vocabulary=vocabulary,
-                                     output_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                     output_word_vectors=word_vectors, output_text_size_in_characters=38,
-                                     target_texts_in_characters=input_texts_as_characters,
-                                     output_char_index=output_char_index,
-                                     for_vae=False)
+        generator = SequenceForSeq2Seq(tokenizer=tokenizer, input_texts=input_texts,
+                                       target_texts=input_texts_as_characters, batch_size=batch_size,
+                                       input_text_size=input_text_size, output_text_size=38,
+                                       input_vocabulary=vocabulary, input_word_vectors=word_vectors,
+                                       output_char_index=output_char_index, vae=FakeVAE())
         true_length = 1
         predicted_length = len(generator)
         self.assertEqual(true_length, predicted_length)
@@ -218,24 +411,20 @@ class TextTextPairSequence(unittest.TestCase):
             self.assertEqual(len(generated_data[0][1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
             self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
             self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 4),
+            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 3),
                              generated_data[0][0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size_in_characters, len(all_characters)),
+            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
                              generated_data[0][1].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size_in_characters, len(all_characters)),
+            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
                              generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
             for sample_idx in range(batch_size):
                 tokens = input_texts[text_idx]
                 n_tokens = len(tokens)
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                    norm_value = np.linalg.norm(generated_data[0][0][sample_idx][token_idx])
                     if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(norm_value, 1.0, places=4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                         if tokens[token_idx] in special_symbols:
                             self.assertAlmostEqual(
                                 generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
@@ -255,11 +444,8 @@ class TextTextPairSequence(unittest.TestCase):
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
                     else:
-                        self.assertAlmostEqual(
-                            generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(norm_value, 0.0, places=4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                 self.assertAlmostEqual(
                     generated_data[0][1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
                     1.0
@@ -276,200 +462,6 @@ class TextTextPairSequence(unittest.TestCase):
                     generated_data[1][sample_idx][-1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
                     1.0
                 )
-                if text_idx < (len(input_texts) - 1):
-                    text_idx += 1
-
-    def test_positive03(self):
-        src_data = [
-            'как определить тип личности по форме носа: метод аристотеля',
-            'какие преступления вдохновили достоевского',
-            'майк тайсон - о пользе чтения'
-        ]
-        batch_size = 2
-        input_text_size = 10
-        output_text_size = 9
-        tokenizer = DefaultTokenizer()
-        input_texts = tuple(map(
-            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
-            src_data
-        ))
-        input_texts_as_characters = tuple(map(
-            lambda it: tuple(tokenizer.tokenize_into_characters(it, tokenizer.tokenize_into_words(it))),
-            src_data
-        ))
-        all_characters = [' ', '-', ':', '<BOS>', '<EOS>', 'а', 'в', 'г', 'д', 'е', 'з', 'и', 'й', 'к', 'л', 'м', 'н',
-                          'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ч', 'ь', 'я']
-        output_char_index = dict([(char, i) for i, char in enumerate(all_characters)])
-        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
-            input_texts,
-            self.fasttext_model,
-            None
-        )
-        generator = TextPairSequence(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
-                                     batch_size=batch_size, input_text_size=input_text_size,
-                                     output_text_size=output_text_size, input_vocabulary=vocabulary,
-                                     output_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                     output_word_vectors=word_vectors,
-                                     target_texts_in_characters=input_texts_as_characters,
-                                     output_text_size_in_characters=61, output_char_index=output_char_index,
-                                     for_vae=True)
-        true_length = 1
-        predicted_length = len(generator)
-        self.assertEqual(true_length, predicted_length)
-        text_idx = 0
-        for batch_idx in range(true_length):
-            generated_data = generator[batch_idx]
-            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[1].shape), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 2),
-                             generated_data[0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, output_text_size),
-                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
-            for sample_idx in range(batch_size):
-                n_tokens = len(input_texts[text_idx])
-                for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                    else:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                for token_idx in range(output_text_size):
-                    self.assertGreaterEqual(generated_data[1][sample_idx][token_idx], 0,
-                                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertLess(generated_data[1][sample_idx][token_idx], vocabulary[''],
-                                        msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    else:
-                        self.assertEqual(
-                            generated_data[1][sample_idx][token_idx],
-                            vocabulary[''],
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                if text_idx < (len(input_texts) - 1):
-                    text_idx += 1
-
-    def test_positive04(self):
-        src_data = [
-            'как определить тип личности\tпо форме носа:\nметод аристотеля',
-            'какие преступления вдохновили достоевского',
-            'майк тайсон - о пользе чтения'
-        ]
-        special_symbols = ('\t', '\n')
-        batch_size = 2
-        input_text_size = 10
-        output_text_size = 9
-        tokenizer = DefaultTokenizer(special_symbols=set(special_symbols))
-        input_texts = tuple(map(
-            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
-            src_data
-        ))
-        input_texts_as_characters = tuple(map(
-            lambda it: tuple(tokenizer.tokenize_into_characters(it, tokenizer.tokenize_into_words(it))),
-            src_data
-        ))
-        all_characters = ['\t', '\n', ' ', '-', ':', '<BOS>', '<EOS>', 'а', 'в', 'г', 'д', 'е', 'з', 'и', 'й', 'к', 'л',
-                          'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ч', 'ь', 'я']
-        output_char_index = dict([(char, i) for i, char in enumerate(all_characters)])
-        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
-            input_texts,
-            self.fasttext_model,
-            special_symbols
-        )
-        generator = TextPairSequence(tokenizer=tokenizer, input_texts=input_texts, target_texts=input_texts,
-                                     batch_size=batch_size, input_text_size=input_text_size,
-                                     output_text_size=output_text_size, input_vocabulary=vocabulary,
-                                     output_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                     output_word_vectors=word_vectors, output_text_size_in_characters=38,
-                                     target_texts_in_characters=input_texts_as_characters,
-                                     output_char_index=output_char_index,
-                                     for_vae=True)
-        true_length = 1
-        predicted_length = len(generator)
-        self.assertEqual(true_length, predicted_length)
-        text_idx = 0
-        for batch_idx in range(true_length):
-            generated_data = generator[batch_idx]
-            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[1].shape), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 4),
-                             generated_data[0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, output_text_size),
-                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
-            for sample_idx in range(batch_size):
-                tokens = input_texts[text_idx]
-                n_tokens = len(tokens)
-                for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                        if tokens[token_idx] in special_symbols:
-                            self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
-                                                                         special_symbols.index(tokens[token_idx])],
-                                1.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                        else:
-                            self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                            self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                    else:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                for token_idx in range(output_text_size):
-                    self.assertGreaterEqual(generated_data[1][sample_idx][token_idx], 0,
-                                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        if tokens[token_idx] in special_symbols:
-                            self.assertEqual(
-                                generated_data[1][sample_idx][token_idx],
-                                vocabulary[tokens[token_idx]],
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                        else:
-                            self.assertLess(
-                                generated_data[1][sample_idx][token_idx],
-                                vocabulary[''] - len(special_symbols),
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                    else:
-                        self.assertEqual(
-                            generated_data[1][sample_idx][token_idx],
-                            vocabulary[''],
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
                 if text_idx < (len(input_texts) - 1):
                     text_idx += 1
 
@@ -1458,6 +1450,37 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertIsInstance(X2, np.ndarray)
         self.assertEqual(X1.shape, X2.shape)
         self.assertEqual(X1.dtype, X2.dtype)
+
+    def test_postprocess_reconstructed_word_vectors_positive01(self):
+        source_word_vectors = np.hstack(
+            (
+                np.random.uniform(-1.0, 1.0, (20, 6)),
+                np.random.uniform(-3.0, -2.0, (20, 1))
+            )
+        )
+        true_end_idx = 11
+        source_word_vectors[true_end_idx] = np.zeros((source_word_vectors.shape[1],), dtype=source_word_vectors.dtype)
+        source_word_vectors[true_end_idx][source_word_vectors.shape[1] - 1] = 1.0
+        true_word_vectors = np.zeros((source_word_vectors.shape[0], source_word_vectors.shape[1] - 1))
+        for idx in range(source_word_vectors.shape[0]):
+            if idx >= true_end_idx:
+                break
+            true_word_vectors[idx] = source_word_vectors[idx][:(source_word_vectors.shape[1] - 1)]
+            true_word_vectors[idx] /= np.linalg.norm(true_word_vectors[idx])
+        predicted_word_vectors = Conv1dTextVAE.postprocess_reconstructed_word_vectors(
+            np.reshape(source_word_vectors, newshape=(1, source_word_vectors.shape[0], source_word_vectors.shape[1]))
+        )
+        self.assertIsInstance(predicted_word_vectors, np.ndarray)
+        self.assertEqual(len(predicted_word_vectors.shape), 3)
+        self.assertEqual(predicted_word_vectors.shape[0], 1)
+        predicted_word_vectors = predicted_word_vectors[0]
+        self.assertEqual(predicted_word_vectors.shape, true_word_vectors.shape)
+        for word_idx in range(true_word_vectors.shape[0]):
+            for feature_idx in range(true_word_vectors.shape[1]):
+                self.assertAlmostEqual(
+                    predicted_word_vectors[word_idx][feature_idx], true_word_vectors[word_idx][feature_idx],
+                    msg='word_idx={0}, feature_idx={1}'.format(word_idx, feature_idx)
+                )
 
 
 if __name__ == '__main__':
