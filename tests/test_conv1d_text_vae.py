@@ -338,32 +338,48 @@ class TextSequenceForSeq2Seq(unittest.TestCase):
                         true_norm_value = 0.0
                     self.assertAlmostEqual(np.linalg.norm(generated_data[0][0][sample_idx][token_idx]), true_norm_value,
                                            places=4, msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                n_seq = -1
                 for time_idx in range(generator.output_text_size):
                     for char_idx in range(len(all_characters)):
                         self.assertTrue((abs(generated_data[0][1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
                                         (abs(generated_data[0][1][sample_idx][time_idx][char_idx]) < EPS))
                         self.assertTrue((abs(generated_data[1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
                                         (abs(generated_data[1][sample_idx][time_idx][char_idx]) < EPS))
+                    vector_norm = np.linalg.norm(generated_data[0][1][sample_idx][time_idx])
+                    self.assertTrue((abs(vector_norm) < EPS) or (abs(1.0 - vector_norm) < EPS))
+                    if vector_norm < EPS:
+                        if n_seq < 0:
+                            n_seq = time_idx - 1
+                self.assertGreater(n_seq, 1)
+                self.assertLess(n_seq, generator.output_text_size)
                 self.assertAlmostEqual(
                     generated_data[0][1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
                     1.0
                 )
                 self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][-1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertNotAlmostEqual(
-                    generated_data[1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
+                    generated_data[0][1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
                     1.0
                 )
                 self.assertAlmostEqual(
-                    generated_data[1][sample_idx][-1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
+                    generated_data[1][sample_idx][n_seq - 1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
                     1.0
                 )
+                self.assertAlmostEqual(
+                    generated_data[1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
+                    1.0
+                )
+                for time_idx in range(0, n_seq - 1):
+                    for char_idx in range(len(all_characters)):
+                        self.assertAlmostEqual(generated_data[0][1][sample_idx][time_idx + 1][char_idx],
+                                               generated_data[1][sample_idx][time_idx][char_idx])
+                for time_idx in range(n_seq + 1, generator.output_text_size):
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][time_idx]), 0.0)
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][1][sample_idx][time_idx]), 0.0)
                 if text_idx < (len(input_texts) - 1):
                     text_idx += 1
 
     def test_positive02(self):
+        EPS = 1e-5
         src_data = [
             'как определить тип личности\tпо форме носа:\nметод аристотеля',
             'какие преступления вдохновили достоевского',
@@ -372,7 +388,6 @@ class TextSequenceForSeq2Seq(unittest.TestCase):
         special_symbols = ('\t', '\n')
         batch_size = 2
         input_text_size = 10
-        output_text_size = 9
         tokenizer = DefaultTokenizer(special_symbols=set(special_symbols))
         input_texts = tuple(map(
             lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
@@ -446,22 +461,43 @@ class TextSequenceForSeq2Seq(unittest.TestCase):
                     else:
                         self.assertAlmostEqual(norm_value, 0.0, places=4,
                                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                n_seq = -1
+                for time_idx in range(generator.output_text_size):
+                    for char_idx in range(len(all_characters)):
+                        self.assertTrue((abs(generated_data[0][1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
+                                        (abs(generated_data[0][1][sample_idx][time_idx][char_idx]) < EPS))
+                        self.assertTrue((abs(generated_data[1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
+                                        (abs(generated_data[1][sample_idx][time_idx][char_idx]) < EPS))
+                    vector_norm = np.linalg.norm(generated_data[0][1][sample_idx][time_idx])
+                    self.assertTrue((abs(vector_norm) < EPS) or (abs(1.0 - vector_norm) < EPS))
+                    if vector_norm < EPS:
+                        if n_seq < 0:
+                            n_seq = time_idx - 1
+                self.assertGreater(n_seq, 1)
+                self.assertLess(n_seq, generator.output_text_size)
                 self.assertAlmostEqual(
                     generated_data[0][1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
                     1.0
                 )
                 self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][-1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertNotAlmostEqual(
-                    generated_data[1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
+                    generated_data[0][1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
                     1.0
                 )
                 self.assertAlmostEqual(
-                    generated_data[1][sample_idx][-1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
+                    generated_data[1][sample_idx][n_seq - 1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
                     1.0
                 )
+                self.assertAlmostEqual(
+                    generated_data[1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
+                    1.0
+                )
+                for time_idx in range(0, n_seq - 1):
+                    for char_idx in range(len(all_characters)):
+                        self.assertAlmostEqual(generated_data[0][1][sample_idx][time_idx + 1][char_idx],
+                                               generated_data[1][sample_idx][time_idx][char_idx])
+                for time_idx in range(n_seq + 1, generator.output_text_size):
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][time_idx]), 0.0)
+                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][1][sample_idx][time_idx]), 0.0)
                 if text_idx < (len(input_texts) - 1):
                     text_idx += 1
 
@@ -1481,6 +1517,52 @@ class TestConv1dTextVAE(unittest.TestCase):
                     predicted_word_vectors[word_idx][feature_idx], true_word_vectors[word_idx][feature_idx],
                     msg='word_idx={0}, feature_idx={1}'.format(word_idx, feature_idx)
                 )
+
+    def test_postprocess_reconstructed_word_vectors_positive02(self):
+        source_word_vectors = np.hstack(
+            (
+                np.random.uniform(-1.0, 1.0, (20, 6)),
+                np.random.uniform(-3.0, -2.0, (20, 1))
+            )
+        )
+        true_end_idx = 1
+        source_word_vectors[true_end_idx] = np.zeros((source_word_vectors.shape[1],), dtype=source_word_vectors.dtype)
+        source_word_vectors[true_end_idx][source_word_vectors.shape[1] - 1] = 1.0
+        source_word_vectors[0][source_word_vectors.shape[1] - 1] = 1.5
+        true_word_vectors = np.zeros((source_word_vectors.shape[0], source_word_vectors.shape[1] - 1))
+        for idx in range(source_word_vectors.shape[0]):
+            if idx >= true_end_idx:
+                break
+            true_word_vectors[idx] = source_word_vectors[idx][:(source_word_vectors.shape[1] - 1)]
+            true_word_vectors[idx] /= np.linalg.norm(true_word_vectors[idx])
+        predicted_word_vectors = Conv1dTextVAE.postprocess_reconstructed_word_vectors(
+            np.reshape(source_word_vectors, newshape=(1, source_word_vectors.shape[0], source_word_vectors.shape[1]))
+        )
+        self.assertIsInstance(predicted_word_vectors, np.ndarray)
+        self.assertEqual(len(predicted_word_vectors.shape), 3)
+        self.assertEqual(predicted_word_vectors.shape[0], 1)
+        predicted_word_vectors = predicted_word_vectors[0]
+        self.assertEqual(predicted_word_vectors.shape, true_word_vectors.shape)
+        for word_idx in range(true_word_vectors.shape[0]):
+            for feature_idx in range(true_word_vectors.shape[1]):
+                self.assertAlmostEqual(
+                    predicted_word_vectors[word_idx][feature_idx], true_word_vectors[word_idx][feature_idx],
+                    msg='word_idx={0}, feature_idx={1}'.format(word_idx, feature_idx)
+                )
+
+    def test_postprocess_reconstructed_word_vectors_negative01(self):
+        source_word_vectors = np.hstack(
+            (
+                np.random.uniform(-1.0, 1.0, (20, 6)),
+                np.random.uniform(-3.0, -2.0, (20, 1))
+            )
+        )
+        true_end_idx = 11
+        source_word_vectors[true_end_idx] = np.zeros((source_word_vectors.shape[1],), dtype=source_word_vectors.dtype)
+        source_word_vectors[true_end_idx][source_word_vectors.shape[1] - 1] = 1.0
+        true_err_msg = re.escape('The `word_vectors` parameter is wrong! Expected 3-D array, got 2-D array!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            _ = Conv1dTextVAE.postprocess_reconstructed_word_vectors(source_word_vectors)
 
 
 if __name__ == '__main__':

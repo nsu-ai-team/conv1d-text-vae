@@ -12,8 +12,7 @@ import keras.backend as K
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, BatchNormalization, Dropout, Dense
-from keras.layers import CuDNNGRU, Flatten, Reshape, RepeatVector, Permute, Multiply, Lambda, Cropping1D
-from keras.engine.topology import Layer
+from keras.layers import GRU, Flatten, Reshape, RepeatVector, Permute, Multiply, Lambda, Cropping1D, Masking
 from keras.models import Model
 from keras.optimizers import RMSprop, Nadam
 from keras.utils import Sequence
@@ -24,7 +23,6 @@ from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.cluster import DBSCAN
-from sklearn.metrics.pairwise import cosine_distances
 
 
 class BaseTokenizer:
@@ -251,7 +249,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if n_characters > self.output_text_size_in_characters_:
                 self.output_text_size_in_characters_ = n_characters
         target_characters = sorted(list(target_characters | {self.SEQUENCE_BEGIN, self.SEQUENCE_END}))
-        self.output_text_size_in_characters_ += 2
+        self.output_text_size_in_characters_ += 3
         self.target_char_index_ = dict([(char, i) for i, char in enumerate(target_characters)])
         self.reverse_target_char_index_ = dict((i, char) for char, i in self.target_char_index_.items())
         output_vocabulary, output_word_vectors = self.prepare_vocabulary_and_word_vectors(
@@ -296,13 +294,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         )
         callbacks = [
             EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
-            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2)
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2, verbose=(1 if self.verbose else 0))
         ]
         tmp_weights_name = self.get_temp_name()
         try:
             callbacks.append(
-                ModelCheckpoint(filepath=tmp_weights_name, verbose=(1 if self.verbose else 0), save_best_only=True,
-                                save_weights_only=True)
+                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True)
             )
             if self.verbose:
                 print('')
@@ -343,13 +340,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         )
         callbacks = [
             EarlyStopping(patience=min(5, self.max_epochs), verbose=(1 if self.verbose else 0)),
-            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2)
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=2, verbose=(1 if self.verbose else 0))
         ]
         tmp_weights_name = self.get_temp_name()
         try:
             callbacks.append(
-                ModelCheckpoint(filepath=tmp_weights_name, verbose=(1 if self.verbose else 0), save_best_only=True,
-                                save_weights_only=True)
+                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True)
             )
             if self.verbose:
                 print('')
@@ -541,7 +537,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             for time_idx in range(word_vectors.shape[1]):
                 best_word_idx = np.argmax(word_vectors[sample_idx][time_idx])
                 if best_word_idx == (word_vectors.shape[2] - 1):
-                    end_idx[sample_idx] = time_idx
+                    end_idx[sample_idx] = max(time_idx, 1)
                     break
         for sample_idx in range(word_vectors.shape[0]):
             n = end_idx[sample_idx]
@@ -1327,24 +1323,37 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         seq2seq_encoder_input = Input(shape=(self.output_text_size_, output_vector_size - 1),
                                       name='seq2seq_encoder_input')
         if self.use_attention:
-            _, seq2seq_encoder_state = CuDNNGRU(
-                self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
-            )(attention_for_seq2seq_encoder(seq2seq_encoder_input))
+            _, seq2seq_encoder_state = GRU(
+                self.n_recurrent_units, return_sequences=False, return_state=True, dropout=0.5, recurrent_dropout=0.3,
+                name='seq2seq_encoder_gru'
+            )(Masking(mask_value=0.0, input_shape=(self.output_text_size_, output_vector_size - 1))(
+                attention_for_seq2seq_encoder(seq2seq_encoder_input)
+            ))
         else:
-            _, seq2seq_encoder_state = CuDNNGRU(
-                self.n_recurrent_units, return_sequences=False, return_state=True, name='seq2seq_encoder_gru'
-            )(seq2seq_encoder_input)
-        seq2seq_decoder_input = Input(shape=(None, len(self.target_char_index_)), name='seq2seq_decoder_input')
-        seq2seq_decoder_gru = CuDNNGRU(self.n_recurrent_units, return_sequences=True, return_state=True,
-                                       name='seq2seq_decoder_gru')
-        seq2seq_decoder, _ = seq2seq_decoder_gru(seq2seq_decoder_input, initial_state=seq2seq_encoder_state)
+            _, seq2seq_encoder_state = GRU(
+                self.n_recurrent_units, return_sequences=False, return_state=True, dropout=0.5, recurrent_dropout=0.3,
+                name='seq2seq_encoder_gru'
+            )(Masking(mask_value=0.0, input_shape=(self.output_text_size_, output_vector_size - 1))(
+                seq2seq_encoder_input
+            ))
+        seq2seq_decoder_input = Input(shape=(None, len(self.target_char_index_)),
+                                      name='seq2seq_decoder_input')
+        seq2seq_decoder_gru = GRU(self.n_recurrent_units, return_sequences=True, return_state=True, dropout=0.5,
+                                  recurrent_dropout=0.3, name='seq2seq_decoder_gru')
+        seq2seq_decoder = Masking(
+            mask_value=0.0, input_shape=(self.output_text_size_in_characters_, len(self.target_char_index_))
+        )(seq2seq_decoder_input)
+        seq2seq_decoder, _ = seq2seq_decoder_gru(seq2seq_decoder, initial_state=seq2seq_encoder_state)
         seq2seq_decoder_dense = Dense(len(self.target_char_index_), activation='softmax', name='seq2seq_decoder_dense')
         seq2seq_decoder = seq2seq_decoder_dense(seq2seq_decoder)
         vae_encoder_model = Model(encoder_input, z_mean, name='EncoderForVAE')
-        generator_encoder_model = Model(seq2seq_encoder_input, seq2seq_encoder_state, name='EncoderForGenerator')
+        generator_encoder_model = Model(seq2seq_encoder_input, seq2seq_encoder_state,
+                                        name='EncoderForGenerator')
         seq2seq_state_input = Input(shape=(self.n_recurrent_units,))
         seq2seq_decoder_output, seq2seq_decoder_state = seq2seq_decoder_gru(
-            seq2seq_decoder_input, initial_state=seq2seq_state_input)
+            seq2seq_decoder_input,
+            initial_state=seq2seq_state_input
+        )
         seq2seq_decoder_output = seq2seq_decoder_dense(seq2seq_decoder_output)
         generator_decoder_model = Model([seq2seq_decoder_input, seq2seq_state_input],
                                         [seq2seq_decoder_output, seq2seq_decoder_state], name='DecoderForGenerator')
@@ -1475,16 +1484,12 @@ class SequenceForSeq2Seq(Sequence):
                 input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
             target_text_in_characters = self.target_texts[prep_text_idx]
             generator_input_data[idx_in_batch, 0, self.output_char_index[Conv1dTextVAE.SEQUENCE_BEGIN]] = 1.0
-            T = len(target_text_in_characters)
-            for t in range(min(T, self.output_text_size - 1)):
+            T = min(len(target_text_in_characters), self.output_text_size - 3)
+            for t in range(T):
                 char = target_text_in_characters[t]
                 generator_input_data[idx_in_batch, t + 1, self.output_char_index[char]] = 1.0
                 generator_target_data[idx_in_batch, t, self.output_char_index[char]] = 1.0
-            if T < (self.output_text_size - 1):
-                for t in range(T, self.output_text_size - 1):
-                    generator_input_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
-                    generator_target_data[idx_in_batch, t, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
-            t = self.output_text_size - 2
+            t = T
             generator_input_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
             generator_target_data[idx_in_batch, t, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
             generator_target_data[idx_in_batch, t + 1, self.output_char_index[Conv1dTextVAE.SEQUENCE_END]] = 1.0
