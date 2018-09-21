@@ -1246,7 +1246,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         def attention_for_seq2seq_encoder(inputs):
             a = Permute((2, 1), name='attention_aux1')(inputs)
             a = Reshape((output_vector_size - 1, self.output_text_size_), name='attention_aux2')(a)
-            a = Dense(self.output_text_size_, activation='softmax', name='attention_aux3')(a)
+            a = Dense(self.output_text_size_, use_bias=False, activation='softmax', name='attention_aux3')(a)
             a = Lambda(lambda x: K.mean(x, axis=1), name='attention_dim_reduction')(a)
             a = RepeatVector(output_vector_size - 1, name='attention_aux4')(a)
             a_probs = Permute((2, 1), name='attention_vec')(a)
