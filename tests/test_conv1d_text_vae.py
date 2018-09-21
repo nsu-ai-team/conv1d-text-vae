@@ -111,20 +111,25 @@ class TextSequenceForVAE(unittest.TestCase):
             for sample_idx in range(batch_size):
                 n_tokens = len(input_texts[text_idx])
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                    vector_norm = np.linalg.norm(generated_data[0][sample_idx][token_idx])
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(vector_norm, 1.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                        else:
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                1.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
                     else:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(vector_norm, 0.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                 for token_idx in range(output_text_size):
                     if token_idx <= n_tokens:
                         self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 1.0,
@@ -192,38 +197,43 @@ class TextSequenceForVAE(unittest.TestCase):
                 tokens = input_texts[text_idx]
                 n_tokens = len(tokens)
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                        if tokens[token_idx] in special_symbols:
+                    vector_norm = np.linalg.norm(generated_data[0][sample_idx][token_idx])
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(vector_norm, 1.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
                             self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
-                                                                         special_symbols.index(tokens[token_idx])],
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                            if tokens[token_idx] in special_symbols:
+                                self.assertAlmostEqual(
+                                    generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
+                                                                             special_symbols.index(tokens[token_idx])],
+                                    1.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                            else:
+                                self.assertAlmostEqual(
+                                    generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
+                                    0.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                                self.assertAlmostEqual(
+                                    generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
+                                    0.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                        else:
+                            self.assertAlmostEqual(
+                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
                                 1.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
-                        else:
-                            self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                            self.assertAlmostEqual(
-                                generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
                     else:
-                        self.assertAlmostEqual(
-                            generated_data[0][sample_idx][token_idx][self.fasttext_model.vector_size + 3],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(vector_norm, 0.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                 for token_idx in range(output_text_size):
                     if token_idx <= n_tokens:
                         self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][token_idx]), 1.0,
@@ -564,6 +574,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(self.text_vae, 'input_text_size_'))
         self.assertFalse(hasattr(self.text_vae, 'output_text_size_'))
         self.assertFalse(hasattr(self.text_vae, 'vae_encoder_'))
+        self.assertFalse(hasattr(self.text_vae, 'vae_decoder_'))
         self.assertFalse(hasattr(self.text_vae, 'generator_encoder_'))
         self.assertFalse(hasattr(self.text_vae, 'generator_decoder_'))
         self.assertFalse(hasattr(self.text_vae, 'output_text_size_in_characters_'))
@@ -1037,20 +1048,25 @@ class TestConv1dTextVAE(unittest.TestCase):
                     self.input_texts[text_idx], tokenizer.tokenize_into_words(self.input_texts[text_idx])
                 ))
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(batch_data[sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                    vector_norm = np.linalg.norm(batch_data[sample_idx][token_idx])
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(vector_norm, 1.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
+                            self.assertAlmostEqual(
+                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                        else:
+                            self.assertAlmostEqual(
+                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
+                                1.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
                     else:
-                        self.assertAlmostEqual(
-                            batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(vector_norm, 0.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                 if text_idx < (n_texts - 1):
                     text_idx += 1
 
@@ -1083,38 +1099,43 @@ class TestConv1dTextVAE(unittest.TestCase):
                 )
                 n_tokens = len(tokens)
                 for token_idx in range(input_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(batch_data[sample_idx][token_idx]), 1.0, delta=1e-4,
-                                           msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(
-                            batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 3],
-                            0.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
-                        if tokens[token_idx] in special_symbols:
+                    vector_norm = np.linalg.norm(batch_data[sample_idx][token_idx])
+                    if token_idx <= n_tokens:
+                        self.assertAlmostEqual(vector_norm, 1.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
+                        if token_idx < n_tokens:
                             self.assertAlmostEqual(
-                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size +
-                                                                  special_symbols.index(tokens[token_idx])],
+                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 3],
+                                0.0,
+                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                            )
+                            if tokens[token_idx] in special_symbols:
+                                self.assertAlmostEqual(
+                                    batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size +
+                                                                      special_symbols.index(tokens[token_idx])],
+                                    1.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                            else:
+                                self.assertAlmostEqual(
+                                    batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size],
+                                    0.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                                self.assertAlmostEqual(
+                                    batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
+                                    0.0,
+                                    msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
+                                )
+                        else:
+                            self.assertAlmostEqual(
+                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 3],
                                 1.0,
                                 msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
                             )
-                        else:
-                            self.assertAlmostEqual(
-                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                            self.assertAlmostEqual(
-                                batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 1],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
                     else:
-                        self.assertAlmostEqual(
-                            batch_data[sample_idx][token_idx][self.ru_fasttext_model.vector_size + 3],
-                            1.0,
-                            msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                        )
+                        self.assertAlmostEqual(vector_norm, 0.0, delta=1e-4,
+                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
                 if text_idx < (n_texts - 1):
                     text_idx += 1
 
@@ -1209,6 +1230,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
+        self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
         self.assertTrue(hasattr(res, 'generator_decoder_'))
         self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
@@ -1241,6 +1263,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
+        self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
         self.assertTrue(hasattr(res, 'generator_decoder_'))
         self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
@@ -1277,6 +1300,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
+        self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
         self.assertTrue(hasattr(res, 'generator_decoder_'))
         self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
@@ -1313,6 +1337,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
+        self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
         self.assertTrue(hasattr(res, 'generator_decoder_'))
         self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
@@ -1409,6 +1434,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(res, 'input_text_size_'))
         self.assertFalse(hasattr(res, 'output_text_size_'))
         self.assertFalse(hasattr(res, 'vae_encoder_'))
+        self.assertFalse(hasattr(res, 'vae_decoder_'))
         self.assertFalse(hasattr(res, 'generator_encoder_'))
         self.assertFalse(hasattr(res, 'generator_decoder_'))
         self.assertFalse(hasattr(res, 'output_text_size_in_characters_'))
@@ -1459,6 +1485,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
+        self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
         self.assertTrue(hasattr(res, 'generator_decoder_'))
         self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))

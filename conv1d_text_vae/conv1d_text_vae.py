@@ -816,15 +816,13 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             start_pos = batch_ind * batch_size
             end_pos = start_pos + batch_size
             for src_text_idx in range(start_pos, end_pos):
-                for time_idx in range(max_text_size):
-                    input_data[src_text_idx - start_pos, time_idx, vector_size - 1] = 1.0
-            for src_text_idx in range(start_pos, end_pos):
                 prep_text_idx = src_text_idx
                 if src_text_idx >= len(input_texts):
                     prep_text_idx = len(input_texts) - 1
                 input_text = input_texts[prep_text_idx]
                 bounds_of_input_words = tokenizer.tokenize_into_words(input_text)
-                for time_idx, token in enumerate(Conv1dTextVAE.tokenize(input_text, bounds_of_input_words)):
+                words_of_input_text = Conv1dTextVAE.tokenize(input_text, bounds_of_input_words)
+                for time_idx, token in enumerate(words_of_input_text):
                     if time_idx >= max_text_size:
                         break
                     if (special_symbols is not None) and (token in special_symbols):
@@ -843,7 +841,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                                 vector_norm = 1.0
                             input_data[src_text_idx - start_pos, time_idx, 0:fasttext_model.vector_size] = \
                                 word_vector / vector_norm
-                    input_data[src_text_idx - start_pos, time_idx, vector_size - 1] = 0.0
+                time_idx = len(words_of_input_text)
+                if time_idx < max_text_size:
+                    input_data[src_text_idx - start_pos, time_idx, vector_size - 1] = 1.0
             yield input_data
 
     @staticmethod
@@ -1417,12 +1417,18 @@ class SequenceForVAE(Sequence):
             while prep_text_idx >= self.n_text_pairs:
                 prep_text_idx = prep_text_idx - self.n_text_pairs
             input_text = self.input_texts[prep_text_idx]
+            prev_token = None
             for time_idx in range(self.input_text_size):
                 if time_idx >= len(input_text):
                     token = ''
                 else:
                     token = input_text[time_idx]
-                input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
+                if prev_token is None:
+                    input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
+                else:
+                    if prev_token != '':
+                        input_data[idx_in_batch, time_idx] = self.input_word_vectors[self.input_vocabulary[token]]
+                prev_token = token
             target_text = self.target_texts[prep_text_idx]
             prev_token = None
             for time_idx in range(self.output_text_size):
