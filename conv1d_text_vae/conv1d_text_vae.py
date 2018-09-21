@@ -1266,18 +1266,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             x = Lambda(lambda x: K.squeeze(x, axis=2), name=name + '_deconv1d_part3')(x)
             return x
 
-        class LayerForReconstruction(Layer):
-            def __init__(self, tau, **kwargs):
-                self.tau = K.constant(tau, dtype='float32', name='tau')
-                super(LayerForReconstruction, self).__init__(**kwargs)
-
-            def call(self, inputs, **kwargs):
-                return K.softmax((1.0 / self.tau) * K.dot(K.l2_normalize(inputs, axis=-1),
-                                                          weights_of_layer_for_reconstruction), axis=-1)
-
-            def compute_output_shape(self, input_shape):
-                return input_shape[0], input_shape[1], output_vectors.shape[0]
-
         encoder_input = Input(shape=(self.input_text_size_, input_vector_size), dtype='float32',
                               name='encoder_embeddings')
         n_filters = self.n_filters if isinstance(self.n_filters, int) else self.n_filters[0]
