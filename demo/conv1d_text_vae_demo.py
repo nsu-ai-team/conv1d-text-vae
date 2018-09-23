@@ -295,16 +295,17 @@ def main():
         print('    ' + input_text + '\t' + target_text)
     print('')
 
+    en_fasttext_model = load_english_fasttext()
     if (model_name is not None) and os.path.isfile(model_name):
         with open(model_name, 'rb') as fp:
             vae = pickle.load(fp)
         assert isinstance(vae, Conv1dTextVAE), \
             'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
         print('')
+        vae.input_embeddings = en_fasttext_model
         print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
         ru_fasttext_model = load_russian_fasttext()
-        en_fasttext_model = load_english_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, lr=1e-3,
                             n_filters=(512, 1024, 1024), kernel_size=3, latent_dim=500, n_recurrent_units=512,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
@@ -314,9 +315,8 @@ def main():
         print('Training has been successfully finished.')
         if model_name is not None:
             with open(model_name, 'wb') as fp:
-                pickle.dump(vae, fp, protocol=2)
+                pickle.dump(vae, fp)
             print('Model has been successfully saved into file "{0}".'.format(model_name))
-
     start_time = time.time()
     predicted_texts = vae.predict(input_texts_for_testing)
     end_time = time.time()

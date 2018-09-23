@@ -187,6 +187,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def fit(self, X: Union[list, tuple, np.ndarray], y: Union[list, tuple, np.ndarray]=None):
         self.check_params(**self.get_params(deep=False))
+        self.check_embeddings()
         self.check_texts_param(X, 'X')
         if y is None:
             y_ = X
@@ -199,11 +200,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.tokenizer = DefaultTokenizer()
         n_eval_set = int(round(len(X) * self.validation_fraction))
         if n_eval_set < 1:
-            raise ValueError(u'`validation_fraction` is too small! There are no samples for evaluation!')
+            raise ValueError('`validation_fraction` is too small! There are no samples for evaluation!')
         if n_eval_set >= len(X):
-            raise ValueError(u'`validation_fraction` is too large! There are no samples for training!')
+            raise ValueError('`validation_fraction` is too large! There are no samples for training!')
         if self.warm_start:
             self.check_is_fitted()
+            true_vector_size = self.calc_vector_size(
+                self.input_embeddings,
+                self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
+            )
+            if self.input_vector_size_ != true_vector_size:
+                raise ValueError('Input embeddings do not correspond to the neural network!')
         X_eval = X[-n_eval_set:]
         y_eval = y_[-n_eval_set:]
         X_train = X[:-n_eval_set]
@@ -233,6 +240,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         ])
         input_vocabulary, input_word_vectors = self.prepare_vocabulary_and_word_vectors(
             input_texts, self.input_embeddings, special_symbols)
+        self.input_vector_size_ = input_word_vectors.shape[1]
         target_texts = []
         target_texts_by_characters = []
         for cur_text in y_train + y_eval:
@@ -252,8 +260,13 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.output_text_size_in_characters_ += 3
         self.target_char_index_ = dict([(char, i) for i, char in enumerate(target_characters)])
         self.reverse_target_char_index_ = dict((i, char) for char, i in self.target_char_index_.items())
-        output_vocabulary, output_word_vectors = self.prepare_vocabulary_and_word_vectors(
-            target_texts, self.output_embeddings, special_symbols, self.output_onehot_size, verbose=self.verbose)
+        if self.output_embeddings is None:
+            output_vocabulary, output_word_vectors = self.prepare_vocabulary_and_word_vectors(
+                target_texts, self.input_embeddings, special_symbols, self.output_onehot_size, verbose=self.verbose)
+        else:
+            output_vocabulary, output_word_vectors = self.prepare_vocabulary_and_word_vectors(
+                target_texts, self.output_embeddings, special_symbols, self.output_onehot_size, verbose=self.verbose)
+        self.output_vector_size_ = output_word_vectors.shape[1]
         if self.warm_start:
             all_weights = self.__dump_weights(self.vae_encoder_)
             del self.vae_encoder_, self.generator_encoder_, self.generator_decoder_
@@ -374,6 +387,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def transform(self, X: Union[list, tuple, np.ndarray]) -> np.ndarray:
         self.check_is_fitted()
+        self.check_embeddings()
         self.check_texts_param(X, 'X')
         outputs = None
         if self.tokenizer is None:
@@ -401,6 +415,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def predict(self, X: Union[list, tuple, np.ndarray]) -> Union[list, tuple, np.ndarray]:
         self.check_is_fitted()
+        self.check_embeddings()
         self.check_texts_param(X, 'X')
         generated_texts = []
         if self.tokenizer is None:
@@ -475,13 +490,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         return self.fit(X, y).predict(X)
 
     def get_params(self, deep=True):
-        return {
+        params = {
             'n_filters': copy.copy(self.n_filters) if deep else self.n_filters,
             'kernel_size': self.kernel_size,
-            'input_embeddings': (Conv1dTextVAE.copy_embeddings(self.input_embeddings) if deep
-                                 else self.input_embeddings),
-            'output_embeddings': (Conv1dTextVAE.copy_embeddings(self.output_embeddings) if deep
-                                  else self.output_embeddings),
             'batch_size': self.batch_size,
             'max_epochs': self.max_epochs,
             'lr': self.lr,
@@ -497,12 +508,17 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             'validation_fraction': self.validation_fraction,
             'tokenizer': None if self.tokenizer is None else (copy.deepcopy(self.tokenizer) if deep else self.tokenizer),
         }
+        if hasattr(self, 'input_embeddings'):
+            params['input_embeddings'] = self.input_embeddings
+        if hasattr(self, 'output_embeddings'):
+            params['output_embeddings'] = self.output_embeddings
+        return params
 
     def set_params(self, **params):
         self.n_filters = params['n_filters']
         self.kernel_size = params['kernel_size']
-        self.input_embeddings = params['input_embeddings']
-        self.output_embeddings = params['output_embeddings']
+        self.input_embeddings = params.get('input_embeddings', None)
+        self.output_embeddings = params.get('output_embeddings', None)
         self.batch_size = params['batch_size']
         self.max_epochs = params['max_epochs']
         self.lr = params['lr']
@@ -519,9 +535,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         self.tokenizer = params['tokenizer']
 
     def check_is_fitted(self):
-        check_is_fitted(self, ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'vae_decoder_',
-                               'generator_encoder_', 'generator_decoder_', 'output_text_size_in_characters_',
-                               'target_char_index_', 'reverse_target_char_index_'])
+        check_is_fitted(self, ['input_text_size_', 'output_text_size_', 'input_vector_size_', 'output_vector_size_',
+                               'vae_encoder_', 'vae_decoder_', 'generator_encoder_', 'generator_decoder_',
+                               'output_text_size_in_characters_', 'target_char_index_', 'reverse_target_char_index_'])
 
     @staticmethod
     def postprocess_reconstructed_word_vectors(word_vectors: np.ndarray):
@@ -547,6 +563,19 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
                 vector_norm = np.linalg.norm(prepared_word_vectors[sample_idx][time_idx])
                 prepared_word_vectors[sample_idx][time_idx] /= vector_norm
         return prepared_word_vectors
+
+    def check_embeddings(self):
+        if not hasattr(self, 'input_embeddings'):
+            raise ValueError('The parameter `input_embeddings` is not defined!')
+        if not hasattr(self, 'output_embeddings'):
+            raise ValueError('The parameter `output_embeddings` is not defined!')
+        if not isinstance(self.input_embeddings, FastTextKeyedVectors):
+            raise ValueError('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
+                type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(self.input_embeddings)))
+        if not self.output_embeddings is None:
+            if not isinstance(self.output_embeddings, FastTextKeyedVectors):
+                raise ValueError('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
+                    type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(self.output_embeddings)))
 
     @staticmethod
     def find_best_words(word_vector: np.ndarray, embeddings_model: FastTextKeyedVectors, n: int,
@@ -660,16 +689,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     @staticmethod
     def check_params(**params):
-        if 'input_embeddings' not in params:
-            raise ValueError('The parameter `input_embeddings` is not defined!')
-        if not isinstance(params['input_embeddings'], FastTextKeyedVectors):
-            raise ValueError('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(params['input_embeddings'])))
-        if 'output_embeddings' not in params:
-            raise ValueError('The parameter `output_embeddings` is not defined!')
-        if not isinstance(params['output_embeddings'], FastTextKeyedVectors):
-            raise ValueError('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(params['output_embeddings'])))
         if 'warm_start' not in params:
             raise ValueError('The parameter `warm_start` is not defined!')
         if (not isinstance(params['warm_start'], bool)) and (not isinstance(params['warm_start'], int)):
@@ -1063,11 +1082,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def __load_fasttext_model(self, data_as_bytes: dict) -> FastTextKeyedVectors:
         if not isinstance(data_as_bytes, dict):
-            raise ValueError(u'The `data_as_bytes` must be a `{0}`, not `{1}`!'.format(
+            raise ValueError('The `data_as_bytes` must be a `{0}`, not `{1}`!'.format(
                 type({1: 'a', 2: 'b'}), type(data_as_bytes)))
         for cur_key in data_as_bytes:
             if (not isinstance(data_as_bytes[cur_key], bytearray)) and (not isinstance(data_as_bytes[cur_key], bytes)):
-                raise ValueError(u'The `data_as_bytes[{0}]` must be an array of bytes, not `{1}`!'.format(
+                raise ValueError('The `data_as_bytes[{0}]` must be an array of bytes, not `{1}`!'.format(
                     cur_key, type(data_as_bytes)))
             if not cur_key.startswith('model'):
                 raise ValueError('The `{0}` is bad name for the fasttext data. '
@@ -1111,7 +1130,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def __load_weights(self, model: Model, weights_as_bytes: Union[bytearray, bytes]):
         if (not isinstance(weights_as_bytes, bytearray)) and (not isinstance(weights_as_bytes, bytes)):
-            raise ValueError(u'The `weights_as_bytes` must be an array of bytes, not `{0}`!'.format(
+            raise ValueError('The `weights_as_bytes` must be an array of bytes, not `{0}`!'.format(
                 type(weights_as_bytes)))
         tmp_weights_name = self.get_temp_name()
         try:
@@ -1140,15 +1159,16 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def __getstate__(self):
         state = self.get_params(deep=False)
-        state['input_embeddings'] = self.__dump_fasttext_model(self.input_embeddings)
-        state['output_embeddings'] = (None if (self.input_embeddings is self.output_embeddings) else
-                                      self.__dump_fasttext_model(self.output_embeddings))
-        if all(map(lambda it: hasattr(self, it),
-                   ['input_text_size_', 'output_text_size_', 'vae_encoder_', 'vae_decoder_', 'generator_encoder_',
-                    'generator_decoder_', 'output_text_size_in_characters_', 'target_char_index_',
-                    'reverse_target_char_index_'])):
+        del state['input_embeddings']
+        del state['output_embeddings']
+        params_after_fitting = ['input_text_size_', 'output_text_size_', 'input_vector_size_', 'output_vector_size_',
+                               'vae_encoder_', 'vae_decoder_', 'generator_encoder_', 'generator_decoder_',
+                               'output_text_size_in_characters_', 'target_char_index_', 'reverse_target_char_index_']
+        if all(map(lambda it: hasattr(self, it), params_after_fitting)):
             state['input_text_size_'] = self.input_text_size_
             state['output_text_size_'] = self.output_text_size_
+            state['input_vector_size_'] = self.input_vector_size_
+            state['output_vector_size_'] = self.output_vector_size_
             state['output_text_size_in_characters_'] = self.output_text_size_in_characters_
             state['target_char_index_'] = copy.deepcopy(self.target_char_index_)
             state['reverse_target_char_index_'] = copy.deepcopy(self.reverse_target_char_index_)
@@ -1162,20 +1182,9 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
 
     def __setstate__(self, state):
         if not isinstance(state, dict):
-            raise ValueError(u'`state` is wrong! Expected {0}.'.format(type({0: 1})))
-        if 'input_embeddings' not in state:
-            raise ValueError('The parameter `input_embeddings` is not defined!')
-        if not isinstance(state['input_embeddings'], dict):
-            raise ValueError('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type({1: 'a', 2: 'b'}), type(state['input_embeddings'])))
-        if 'output_embeddings' not in state:
-            raise ValueError('The parameter `output_embeddings` is not defined!')
-        if (not isinstance(state['output_embeddings'], dict)) and (state['output_embeddings'] is not None):
-            raise ValueError('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-                type({'a': 1, 'b': 2}), type(state['output_embeddings'])))
-        state['input_embeddings'] = self.__load_fasttext_model(state['input_embeddings'])
-        state['output_embeddings'] = (state['input_embeddings'] if state['output_embeddings'] is None
-                                      else self.__load_fasttext_model(state['output_embeddings']))
+            raise ValueError('`state` is wrong! Expected {0}.'.format(type({0: 1})))
+        state['input_embeddings'] = None
+        state['output_embeddings'] = None
         self.check_params(**state)
         if hasattr(self, 'vae_encoder_') or hasattr(self, 'vae_decoder_') or hasattr(self, 'generator_encoder_') or \
                 hasattr(self, 'generator_decoder_'):
@@ -1188,7 +1197,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             if hasattr(self, 'generator_decoder_'):
                 del self.generator_decoder_
             K.clear_session()
-        is_fitted = all(map(lambda it: it in state, ['input_text_size_', 'output_text_size_', 'weights_']))
+        is_fitted = all(map(
+            lambda it: it in state,
+            ['input_text_size_', 'output_text_size_', 'input_vector_size_', 'output_vector_size_', 'weights_',
+             'output_text_size_in_characters_', 'target_char_index_', 'reverse_target_char_index_']
+        ))
         self.set_params(**state)
         if is_fitted:
             if not isinstance(state['weights_'], dict):
@@ -1207,17 +1220,11 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             self.output_text_size_in_characters_ = state['output_text_size_in_characters_']
             self.target_char_index_ = copy.deepcopy(state['target_char_index_'])
             self.reverse_target_char_index_ = copy.deepcopy(state['reverse_target_char_index_'])
+            self.input_vector_size_ = state['input_vector_size_']
+            self.output_vector_size_ = state['output_vector_size_']
             self.vae_encoder_, self.vae_decoder_, self.generator_encoder_, self.generator_decoder_, _, _ = \
-                self.__create_model(
-                    input_vector_size=self.calc_vector_size(
-                        self.input_embeddings,
-                        self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
-                    ),
-                    output_vector_size=self.calc_vector_size(
-                        self.output_embeddings,
-                        self.tokenizer.special_symbols if hasattr(self.tokenizer, 'special_symbols') else None
-                    )
-                )
+                self.__create_model(input_vector_size=self.input_vector_size_,
+                                    output_vector_size=self.output_vector_size_)
             self.__load_weights(self.vae_encoder_, state['weights_']['vae_encoder'])
             self.__load_weights(self.vae_decoder_, state['weights_']['vae_decoder'])
             self.__load_weights(self.generator_encoder_, state['weights_']['seq2seq_encoder'])

@@ -573,6 +573,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(self.text_vae, 'tokenizer'))
         self.assertFalse(hasattr(self.text_vae, 'input_text_size_'))
         self.assertFalse(hasattr(self.text_vae, 'output_text_size_'))
+        self.assertFalse(hasattr(self.text_vae, 'input_vector_size_'))
+        self.assertFalse(hasattr(self.text_vae, 'output_vector_size_'))
         self.assertFalse(hasattr(self.text_vae, 'vae_encoder_'))
         self.assertFalse(hasattr(self.text_vae, 'vae_decoder_'))
         self.assertFalse(hasattr(self.text_vae, 'generator_encoder_'))
@@ -669,36 +671,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         true_err_msg = re.escape('Item 3 of the parameter `X` is wrong! This item is not string!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_texts_param(texts, 'X')
-
-    def test_check_params_negative01(self):
-        params = self.text_vae.__dict__
-        del params['input_embeddings']
-        true_err_msg = re.escape('The parameter `input_embeddings` is not defined!')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative02(self):
-        params = self.text_vae.__dict__
-        params['input_embeddings'] = 4
-        true_err_msg = re.escape('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(4)))
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative03(self):
-        params = self.text_vae.__dict__
-        del params['output_embeddings']
-        true_err_msg = re.escape('The parameter `output_embeddings` is not defined!')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative04(self):
-        params = self.text_vae.__dict__
-        params['output_embeddings'] = 3.5
-        true_err_msg = re.escape('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(3.5)))
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
 
     def test_check_params_negative05(self):
         params = self.text_vae.__dict__
@@ -1229,6 +1201,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
+        self.assertTrue(hasattr(res, 'input_vector_size_'))
+        self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
@@ -1262,6 +1236,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
+        self.assertTrue(hasattr(res, 'input_vector_size_'))
+        self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
@@ -1299,6 +1275,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
+        self.assertTrue(hasattr(res, 'input_vector_size_'))
+        self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
@@ -1336,6 +1314,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
+        self.assertTrue(hasattr(res, 'input_vector_size_'))
+        self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
@@ -1364,6 +1344,32 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             self.text_vae.fit(self.input_texts, self.target_texts)
 
+    def test_fit_negative04(self):
+        del self.text_vae.input_embeddings
+        true_err_msg = re.escape('The parameter `input_embeddings` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            self.text_vae.fit(self.input_texts, self.target_texts)
+
+    def test_fit_negative05(self):
+        self.text_vae.input_embeddings = 4
+        true_err_msg = re.escape('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(4)))
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            self.text_vae.fit(self.input_texts, self.target_texts)
+
+    def test_fit_negative06(self):
+        del self.text_vae.output_embeddings
+        true_err_msg = re.escape('The parameter `output_embeddings` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            self.text_vae.fit(self.input_texts, self.target_texts)
+
+    def test_fit_negative07(self):
+        self.text_vae.output_embeddings = 3.5
+        true_err_msg = re.escape('The parameter `output_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(3.5)))
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            self.text_vae.fit(self.input_texts, self.target_texts)
+
     def test_transform_positive01(self):
         res = self.text_vae.fit_transform(self.input_texts, self.target_texts)
         self.assertIsInstance(res, np.ndarray)
@@ -1381,6 +1387,13 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.text_vae.fit(self.input_texts)
         with self.assertRaisesRegex(ValueError, true_err_msg):
             _ = self.text_vae.transform(texts)
+
+    def test_transform_negative03(self):
+        self.text_vae.fit(self.input_texts)
+        del self.text_vae.input_embeddings
+        true_err_msg = re.escape('The parameter `input_embeddings` is not defined!')
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            self.text_vae.fit(self.input_texts, self.target_texts)
 
     def test_predict_positive01(self):
         batch_size = 3
@@ -1406,6 +1419,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.text_vae.fit(self.input_texts)
         with self.assertRaisesRegex(ValueError, true_err_msg):
             _ = self.text_vae.predict(texts)
+
+    def test_predict_negative03(self):
+        true_err_msg = re.escape('The parameter `input_embeddings` is wrong! Expected `{0}`, got `{1}`.'.format(
+            type(FastTextKeyedVectors(vector_size=300, min_n=1, max_n=5)), type(None)))
+        self.text_vae.fit(self.input_texts)
+        self.text_vae.input_embeddings = None
+        with self.assertRaisesRegex(ValueError, true_err_msg):
+            _ = self.text_vae.predict(self.input_texts)
 
     def test_serialize_unfitted(self):
         with open(self.model_name, 'wb') as fp:
@@ -1433,6 +1454,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertFalse(hasattr(res, 'input_text_size_'))
         self.assertFalse(hasattr(res, 'output_text_size_'))
+        self.assertFalse(hasattr(res, 'input_vector_size_'))
+        self.assertFalse(hasattr(res, 'output_vector_size_'))
         self.assertFalse(hasattr(res, 'vae_encoder_'))
         self.assertFalse(hasattr(res, 'vae_decoder_'))
         self.assertFalse(hasattr(res, 'generator_encoder_'))
@@ -1442,8 +1465,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
-        self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
-        self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
+        self.assertIsNone(res.input_embeddings)
+        self.assertIsNone(res.output_embeddings)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
         self.assertEqual(res.use_attention, self.text_vae.use_attention)
         self.assertEqual(res.use_batch_norm, self.text_vae.use_batch_norm)
@@ -1484,6 +1507,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'tokenizer'))
         self.assertTrue(hasattr(res, 'input_text_size_'))
         self.assertTrue(hasattr(res, 'output_text_size_'))
+        self.assertTrue(hasattr(res, 'input_vector_size_'))
+        self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
         self.assertTrue(hasattr(res, 'generator_encoder_'))
@@ -1493,8 +1518,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
-        self.assertIsInstance(res.input_embeddings, FastTextKeyedVectors)
-        self.assertIsInstance(res.output_embeddings, FastTextKeyedVectors)
+        self.assertIsNone(res.input_embeddings)
+        self.assertIsNone(res.output_embeddings)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)
@@ -1507,6 +1532,8 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.output_text_size, self.text_vae.output_text_size)
         self.assertEqual(res.validation_fraction, self.text_vae.validation_fraction)
         self.assertEqual(res.lr, self.text_vae.lr)
+        res.input_embeddings = self.text_vae.input_embeddings
+        res.output_embeddings = self.text_vae.output_embeddings
         X1 = self.text_vae.transform(self.input_texts)
         X2 = res.transform(self.input_texts)
         self.assertIsInstance(X1, np.ndarray)
