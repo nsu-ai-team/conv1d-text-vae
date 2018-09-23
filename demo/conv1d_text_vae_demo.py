@@ -307,9 +307,9 @@ def main():
     else:
         ru_fasttext_model = load_russian_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, lr=1e-3,
-                            n_filters=(512, 1024, 1024), kernel_size=3, latent_dim=500, n_recurrent_units=512,
+                            n_filters=(1024, 2048), kernel_size=3, latent_dim=700, n_recurrent_units=1024,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
-                            output_onehot_size=target_onehot_size, use_attention=True, use_batch_norm=True)
+                            output_onehot_size=target_onehot_size, use_attention=True, use_batch_norm=False)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
         print('Training has been successfully finished.')

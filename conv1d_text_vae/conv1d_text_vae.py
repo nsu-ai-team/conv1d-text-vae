@@ -312,7 +312,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         tmp_weights_name = self.get_temp_name()
         try:
             callbacks.append(
-                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True)
+                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True, verbose=(1 if self.verbose else 0))
             )
             if self.verbose:
                 print('')
@@ -358,7 +358,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         tmp_weights_name = self.get_temp_name()
         try:
             callbacks.append(
-                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True)
+                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True, verbose=(1 if self.verbose else 0))
             )
             if self.verbose:
                 print('')
