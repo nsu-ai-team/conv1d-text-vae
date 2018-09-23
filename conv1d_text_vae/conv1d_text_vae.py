@@ -1080,54 +1080,6 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         del src_fasttext_vocabulary
         return vocabulary, word_vectors
 
-    def __load_fasttext_model(self, data_as_bytes: dict) -> FastTextKeyedVectors:
-        if not isinstance(data_as_bytes, dict):
-            raise ValueError('The `data_as_bytes` must be a `{0}`, not `{1}`!'.format(
-                type({1: 'a', 2: 'b'}), type(data_as_bytes)))
-        for cur_key in data_as_bytes:
-            if (not isinstance(data_as_bytes[cur_key], bytearray)) and (not isinstance(data_as_bytes[cur_key], bytes)):
-                raise ValueError('The `data_as_bytes[{0}]` must be an array of bytes, not `{1}`!'.format(
-                    cur_key, type(data_as_bytes)))
-            if not cur_key.startswith('model'):
-                raise ValueError('The `{0}` is bad name for the fasttext data. '
-                                 'All names must be start with `model`.'.format(cur_key))
-            if cur_key != 'model':
-                if not cur_key.endswith('.npy'):
-                    raise ValueError('The `{0}` is bad name for the fasttext data. '
-                                     'All names must be end with `.npy`.'.format(cur_key))
-        tmp_model_name = self.get_temp_name()
-        try:
-            with open(tmp_model_name, 'wb') as fp:
-                fp.write(data_as_bytes['model'])
-            for cur_key in data_as_bytes.keys():
-                if cur_key == 'model':
-                    continue
-                additional_name = tmp_model_name + cur_key[len('model'):]
-                with open(additional_name, 'wb') as fp:
-                    fp.write(data_as_bytes[cur_key])
-            model = FastTextKeyedVectors.load(tmp_model_name)
-        finally:
-            self.remove_fasttext_files(tmp_model_name)
-        return model
-
-    def __dump_fasttext_model(self, model: FastTextKeyedVectors) -> dict:
-        tmp_model_name = self.get_temp_name()
-        weights_of_model = dict()
-        try:
-            self.remove_fasttext_files(tmp_model_name)
-            model.save(tmp_model_name)
-            with open(tmp_model_name, 'rb') as fp:
-                weights_of_model['model'] = fp.read()
-            dir_name = os.path.dirname(tmp_model_name)
-            base_name = os.path.basename(tmp_model_name)
-            for additional_name in filter(lambda it: it.startswith(base_name) and it.endswith('.npy'),
-                                          os.listdir(dir_name)):
-                with open(os.path.join(dir_name, additional_name), 'rb') as fp:
-                    weights_of_model['model' + additional_name[len(base_name):]] = fp.read()
-        finally:
-            self.remove_fasttext_files(tmp_model_name)
-        return weights_of_model
-
     def __load_weights(self, model: Model, weights_as_bytes: Union[bytearray, bytes]):
         if (not isinstance(weights_as_bytes, bytearray)) and (not isinstance(weights_as_bytes, bytes)):
             raise ValueError('The `weights_as_bytes` must be an array of bytes, not `{0}`!'.format(
