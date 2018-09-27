@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 from gensim.models.keyedvectors import FastTextKeyedVectors
 
-from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, SequenceForVAE, SequenceForSeq2Seq
+from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, SequenceForVAE
 from conv1d_text_vae.fasttext_loading import load_russian_fasttext_rusvectores
 
 
@@ -275,243 +275,6 @@ class FakeVAE():
         return x
 
 
-class TextSequenceForSeq2Seq(unittest.TestCase):
-    fasttext_model = None
-
-    @classmethod
-    def setUpClass(cls):
-        cls.fasttext_model = load_russian_fasttext_rusvectores()
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.fasttext_model
-
-    def test_positive01(self):
-        EPS = 1e-5
-        src_data = [
-            'как определить тип личности по форме носа: метод аристотеля',
-            'какие преступления вдохновили достоевского',
-            'майк тайсон - о пользе чтения'
-        ]
-        batch_size = 2
-        input_text_size = 10
-        tokenizer = DefaultTokenizer()
-        input_texts = tuple(map(
-            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
-            src_data
-        ))
-        input_texts_as_characters = tuple(map(
-            lambda it: tuple(tokenizer.tokenize_into_characters(it, tokenizer.tokenize_into_words(it))),
-            src_data
-        ))
-        all_characters = [' ', '-', ':', '<BOS>', '<EOS>', 'а', 'в', 'г', 'д', 'е', 'з', 'и', 'й', 'к', 'л', 'м', 'н',
-                          'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ч', 'ь', 'я']
-        output_char_index = dict([(char, i) for i, char in enumerate(all_characters)])
-        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
-            input_texts,
-            self.fasttext_model,
-            None
-        )
-        generator = SequenceForSeq2Seq(tokenizer=tokenizer, input_texts=input_texts,
-                                       target_texts=input_texts_as_characters, batch_size=batch_size,
-                                       input_text_size=input_text_size, output_text_size=61,
-                                       input_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                       output_char_index=output_char_index, vae=FakeVAE())
-        true_length = 1
-        predicted_length = len(generator)
-        self.assertEqual(true_length, predicted_length)
-        text_idx = 0
-        for batch_idx in range(true_length):
-            generated_data = generator[batch_idx]
-            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0], list, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0]), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0][0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0][0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0][1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0][1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 1),
-                             generated_data[0][0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
-                             generated_data[0][1].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
-                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
-            for sample_idx in range(batch_size):
-                n_tokens = len(input_texts[text_idx])
-                for token_idx in range(input_text_size):
-                    if token_idx < n_tokens:
-                        true_norm_value = 1.0
-                    else:
-                        true_norm_value = 0.0
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][0][sample_idx][token_idx]), true_norm_value,
-                                           places=4, msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                n_seq = -1
-                for time_idx in range(generator.output_text_size):
-                    for char_idx in range(len(all_characters)):
-                        self.assertTrue((abs(generated_data[0][1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
-                                        (abs(generated_data[0][1][sample_idx][time_idx][char_idx]) < EPS))
-                        self.assertTrue((abs(generated_data[1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
-                                        (abs(generated_data[1][sample_idx][time_idx][char_idx]) < EPS))
-                    vector_norm = np.linalg.norm(generated_data[0][1][sample_idx][time_idx])
-                    self.assertTrue((abs(vector_norm) < EPS) or (abs(1.0 - vector_norm) < EPS))
-                    if vector_norm < EPS:
-                        if n_seq < 0:
-                            n_seq = time_idx - 1
-                self.assertGreater(n_seq, 1)
-                self.assertLess(n_seq, generator.output_text_size)
-                self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[1][sample_idx][n_seq - 1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                for time_idx in range(0, n_seq - 1):
-                    for char_idx in range(len(all_characters)):
-                        self.assertAlmostEqual(generated_data[0][1][sample_idx][time_idx + 1][char_idx],
-                                               generated_data[1][sample_idx][time_idx][char_idx])
-                for time_idx in range(n_seq + 1, generator.output_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][time_idx]), 0.0)
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][1][sample_idx][time_idx]), 0.0)
-                if text_idx < (len(input_texts) - 1):
-                    text_idx += 1
-
-    def test_positive02(self):
-        EPS = 1e-5
-        src_data = [
-            'как определить тип личности\tпо форме носа:\nметод аристотеля',
-            'какие преступления вдохновили достоевского',
-            'майк тайсон - о пользе чтения'
-        ]
-        special_symbols = ('\t', '\n')
-        batch_size = 2
-        input_text_size = 10
-        tokenizer = DefaultTokenizer(special_symbols=set(special_symbols))
-        input_texts = tuple(map(
-            lambda it: Conv1dTextVAE.tokenize(it, tokenizer.tokenize_into_words(it)),
-            src_data
-        ))
-        input_texts_as_characters = tuple(map(
-            lambda it: tuple(tokenizer.tokenize_into_characters(it, tokenizer.tokenize_into_words(it))),
-            src_data
-        ))
-        all_characters = ['\t', '\n', ' ', '-', ':', '<BOS>', '<EOS>', 'а', 'в', 'г', 'д', 'е', 'з', 'и', 'й', 'к', 'л',
-                          'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ч', 'ь', 'я']
-        output_char_index = dict([(char, i) for i, char in enumerate(all_characters)])
-        vocabulary, word_vectors = Conv1dTextVAE.prepare_vocabulary_and_word_vectors(
-            input_texts,
-            self.fasttext_model,
-            special_symbols
-        )
-        generator = SequenceForSeq2Seq(tokenizer=tokenizer, input_texts=input_texts,
-                                       target_texts=input_texts_as_characters, batch_size=batch_size,
-                                       input_text_size=input_text_size, output_text_size=38,
-                                       input_vocabulary=vocabulary, input_word_vectors=word_vectors,
-                                       output_char_index=output_char_index, vae=FakeVAE())
-        true_length = 1
-        predicted_length = len(generator)
-        self.assertEqual(true_length, predicted_length)
-        text_idx = 0
-        for batch_idx in range(true_length):
-            generated_data = generator[batch_idx]
-            self.assertIsInstance(generated_data, tuple, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0], list, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0]), 2, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0][0], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0][0].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[0][1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[0][1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertIsInstance(generated_data[1], np.ndarray, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual(len(generated_data[1].shape), 3, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, input_text_size, self.fasttext_model.vector_size + 3),
-                             generated_data[0][0].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
-                             generated_data[0][1].shape, msg='batch_idx={0}'.format(batch_idx))
-            self.assertEqual((batch_size, generator.output_text_size, len(all_characters)),
-                             generated_data[1].shape, msg='batch_idx={0}'.format(batch_idx))
-            for sample_idx in range(batch_size):
-                tokens = input_texts[text_idx]
-                n_tokens = len(tokens)
-                for token_idx in range(input_text_size):
-                    norm_value = np.linalg.norm(generated_data[0][0][sample_idx][token_idx])
-                    if token_idx < n_tokens:
-                        self.assertAlmostEqual(norm_value, 1.0, places=4,
-                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                        if tokens[token_idx] in special_symbols:
-                            self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1 +
-                                                                            special_symbols.index(tokens[token_idx])],
-                                1.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                        else:
-                            self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 1],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                            self.assertAlmostEqual(
-                                generated_data[0][0][sample_idx][token_idx][self.fasttext_model.vector_size + 2],
-                                0.0,
-                                msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx)
-                            )
-                    else:
-                        self.assertAlmostEqual(norm_value, 0.0, places=4,
-                                               msg='batch_idx={0}, sample_idx={1}'.format(batch_idx, sample_idx))
-                n_seq = -1
-                for time_idx in range(generator.output_text_size):
-                    for char_idx in range(len(all_characters)):
-                        self.assertTrue((abs(generated_data[0][1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
-                                        (abs(generated_data[0][1][sample_idx][time_idx][char_idx]) < EPS))
-                        self.assertTrue((abs(generated_data[1][sample_idx][time_idx][char_idx] - 1.0) < EPS) or
-                                        (abs(generated_data[1][sample_idx][time_idx][char_idx]) < EPS))
-                    vector_norm = np.linalg.norm(generated_data[0][1][sample_idx][time_idx])
-                    self.assertTrue((abs(vector_norm) < EPS) or (abs(1.0 - vector_norm) < EPS))
-                    if vector_norm < EPS:
-                        if n_seq < 0:
-                            n_seq = time_idx - 1
-                self.assertGreater(n_seq, 1)
-                self.assertLess(n_seq, generator.output_text_size)
-                self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][0][all_characters.index(Conv1dTextVAE.SEQUENCE_BEGIN)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[0][1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[1][sample_idx][n_seq - 1][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                self.assertAlmostEqual(
-                    generated_data[1][sample_idx][n_seq][all_characters.index(Conv1dTextVAE.SEQUENCE_END)],
-                    1.0
-                )
-                for time_idx in range(0, n_seq - 1):
-                    for char_idx in range(len(all_characters)):
-                        self.assertAlmostEqual(generated_data[0][1][sample_idx][time_idx + 1][char_idx],
-                                               generated_data[1][sample_idx][time_idx][char_idx])
-                for time_idx in range(n_seq + 1, generator.output_text_size):
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[1][sample_idx][time_idx]), 0.0)
-                    self.assertAlmostEqual(np.linalg.norm(generated_data[0][1][sample_idx][time_idx]), 0.0)
-                if text_idx < (len(input_texts) - 1):
-                    text_idx += 1
-
-
 class TestConv1dTextVAE(unittest.TestCase):
     ru_fasttext_model = None
 
@@ -560,13 +323,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(self.text_vae, 'output_embeddings'))
         self.assertTrue(hasattr(self.text_vae, 'batch_size'))
         self.assertTrue(hasattr(self.text_vae, 'max_epochs'))
-        self.assertTrue(hasattr(self.text_vae, 'lr'))
         self.assertTrue(hasattr(self.text_vae, 'latent_dim'))
-        self.assertTrue(hasattr(self.text_vae, 'n_recurrent_units'))
+        self.assertTrue(hasattr(self.text_vae, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(self.text_vae, 'use_batch_norm'))
         self.assertTrue(hasattr(self.text_vae, 'warm_start'))
         self.assertTrue(hasattr(self.text_vae, 'verbose'))
-        self.assertTrue(hasattr(self.text_vae, 'use_attention'))
         self.assertTrue(hasattr(self.text_vae, 'input_text_size'))
         self.assertTrue(hasattr(self.text_vae, 'output_text_size'))
         self.assertTrue(hasattr(self.text_vae, 'validation_fraction'))
@@ -577,11 +338,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(self.text_vae, 'output_vector_size_'))
         self.assertFalse(hasattr(self.text_vae, 'vae_encoder_'))
         self.assertFalse(hasattr(self.text_vae, 'vae_decoder_'))
-        self.assertFalse(hasattr(self.text_vae, 'generator_encoder_'))
-        self.assertFalse(hasattr(self.text_vae, 'generator_decoder_'))
-        self.assertFalse(hasattr(self.text_vae, 'output_text_size_in_characters_'))
-        self.assertFalse(hasattr(self.text_vae, 'target_char_index_'))
-        self.assertFalse(hasattr(self.text_vae, 'reverse_target_char_index_'))
 
     def test_tokenize(self):
         tokenizer = DefaultTokenizer(special_symbols={'\n'})
@@ -672,14 +428,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_texts_param(texts, 'X')
 
-    def test_check_params_negative05(self):
+    def test_check_params_negative01(self):
         params = self.text_vae.__dict__
         del params['warm_start']
         true_err_msg = re.escape('The parameter `warm_start` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative06(self):
+    def test_check_params_negative02(self):
         params = self.text_vae.__dict__
         params['warm_start'] = 0.5
         true_err_msg = re.escape('The parameter `warm_start` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -687,14 +443,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative07(self):
+    def test_check_params_negative03(self):
         params = self.text_vae.__dict__
         del params['verbose']
         true_err_msg = re.escape('The parameter `verbose` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative08(self):
+    def test_check_params_negative04(self):
         params = self.text_vae.__dict__
         params['verbose'] = 0.5
         true_err_msg = re.escape('The parameter `verbose` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -702,14 +458,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative09(self):
+    def test_check_params_negative05(self):
         params = self.text_vae.__dict__
         del params['batch_size']
         true_err_msg = re.escape('The parameter `batch_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative10(self):
+    def test_check_params_negative06(self):
         params = self.text_vae.__dict__
         params['batch_size'] = 4.5
         true_err_msg = re.escape('The parameter `batch_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -717,7 +473,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative11(self):
+    def test_check_params_negative07(self):
         params = self.text_vae.__dict__
         params['batch_size'] = -3
         true_err_msg = re.escape('The parameter `batch_size` is wrong! Expected a positive value, '
@@ -725,14 +481,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative12(self):
+    def test_check_params_negative08(self):
         params = self.text_vae.__dict__
         del params['max_epochs']
         true_err_msg = re.escape('The parameter `max_epochs` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative13(self):
+    def test_check_params_negative09(self):
         params = self.text_vae.__dict__
         params['max_epochs'] = 4.5
         true_err_msg = re.escape('The parameter `max_epochs` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -740,7 +496,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative14(self):
+    def test_check_params_negative10(self):
         params = self.text_vae.__dict__
         params['max_epochs'] = -3
         true_err_msg = re.escape('The parameter `max_epochs` is wrong! Expected a positive value, '
@@ -748,14 +504,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative15(self):
+    def test_check_params_negative11(self):
         params = self.text_vae.__dict__
         del params['latent_dim']
         true_err_msg = re.escape('The parameter `latent_dim` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative16(self):
+    def test_check_params_negative12(self):
         params = self.text_vae.__dict__
         params['latent_dim'] = 4.5
         true_err_msg = re.escape('The parameter `latent_dim` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -763,7 +519,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative17(self):
+    def test_check_params_negative13(self):
         params = self.text_vae.__dict__
         params['latent_dim'] = -3
         true_err_msg = re.escape('The parameter `latent_dim` is wrong! Expected a positive value, '
@@ -771,37 +527,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative18(self):
-        params = self.text_vae.__dict__
-        del params['n_recurrent_units']
-        true_err_msg = re.escape('The parameter `n_recurrent_units` is not defined!')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative19(self):
-        params = self.text_vae.__dict__
-        params['n_recurrent_units'] = 4.5
-        true_err_msg = re.escape('The parameter `n_recurrent_units` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(10), type(4.5)))
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative20(self):
-        params = self.text_vae.__dict__
-        params['n_recurrent_units'] = -3
-        true_err_msg = re.escape('The parameter `n_recurrent_units` is wrong! Expected a positive value, '
-                                 'but -3 is not positive.')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative21(self):
+    def test_check_params_negative14(self):
         params = self.text_vae.__dict__
         del params['input_text_size']
         true_err_msg = re.escape('The parameter `input_text_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative22(self):
+    def test_check_params_negative15(self):
         params = self.text_vae.__dict__
         params['input_text_size'] = 4.5
         true_err_msg = re.escape('The parameter `input_text_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -809,7 +542,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative23(self):
+    def test_check_params_negative16(self):
         params = self.text_vae.__dict__
         params['input_text_size'] = -3
         true_err_msg = re.escape('The parameter `input_text_size` is wrong! Expected a positive value, '
@@ -817,14 +550,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative24(self):
+    def test_check_params_negative17(self):
         params = self.text_vae.__dict__
         del params['output_text_size']
         true_err_msg = re.escape('The parameter `output_text_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative25(self):
+    def test_check_params_negative18(self):
         params = self.text_vae.__dict__
         params['output_text_size'] = 4.5
         true_err_msg = re.escape('The parameter `output_text_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -832,7 +565,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative26(self):
+    def test_check_params_negative19(self):
         params = self.text_vae.__dict__
         params['output_text_size'] = -3
         true_err_msg = re.escape('The parameter `output_text_size` is wrong! Expected a positive value, '
@@ -840,14 +573,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative27(self):
+    def test_check_params_negative20(self):
         params = self.text_vae.__dict__
         del params['n_filters']
         true_err_msg = re.escape('The parameter `n_filters` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative28(self):
+    def test_check_params_negative21(self):
         params = self.text_vae.__dict__
         params['n_filters'] = 4.5
         true_err_msg = re.escape('The parameter `n_filters` is wrong! Expected `{0}` or `{1}`, got `{2}`.'.format(
@@ -855,7 +588,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative29(self):
+    def test_check_params_negative22(self):
         params = self.text_vae.__dict__
         params['n_filters'] = -3
         true_err_msg = re.escape('The parameter `n_filters` is wrong! Expected a positive value, '
@@ -863,7 +596,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative30(self):
+    def test_check_params_negative23(self):
         params = self.text_vae.__dict__
         params['n_filters'] = (10, -3)
         true_err_msg = re.escape('Item 1 of the parameter `n_filters` is wrong! Expected a positive value, '
@@ -871,14 +604,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative31(self):
+    def test_check_params_negative24(self):
         params = self.text_vae.__dict__
         del params['kernel_size']
         true_err_msg = re.escape('The parameter `kernel_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative32(self):
+    def test_check_params_negative25(self):
         params = self.text_vae.__dict__
         params['kernel_size'] = 4.5
         true_err_msg = re.escape('The parameter `kernel_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -886,7 +619,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative33(self):
+    def test_check_params_negative26(self):
         params = self.text_vae.__dict__
         params['kernel_size'] = -3
         true_err_msg = re.escape('The parameter `kernel_size` is wrong! Expected a positive value, '
@@ -894,14 +627,14 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative34(self):
+    def test_check_params_negative27(self):
         params = self.text_vae.__dict__
         del params['validation_fraction']
         true_err_msg = re.escape('The parameter `validation_fraction` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative35(self):
+    def test_check_params_negative28(self):
         params = self.text_vae.__dict__
         params['validation_fraction'] = '1.5'
         true_err_msg = re.escape('The parameter `validation_fraction` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -909,7 +642,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative36(self):
+    def test_check_params_negative29(self):
         params = self.text_vae.__dict__
         params['validation_fraction'] = -0.1
         true_err_msg = re.escape('The parameter `validation_fraction` is wrong! Expected a positive value between 0.0 '
@@ -917,21 +650,21 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative37(self):
+    def test_check_params_negative30(self):
         params = self.text_vae.__dict__
         del params['use_batch_norm']
         true_err_msg = re.escape('The parameter `use_batch_norm` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative38(self):
+    def test_check_params_negative31(self):
         params = self.text_vae.__dict__
         del params['output_onehot_size']
         true_err_msg = re.escape('The parameter `output_onehot_size` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative39(self):
+    def test_check_params_negative32(self):
         params = self.text_vae.__dict__
         params['output_onehot_size'] = 4.5
         true_err_msg = re.escape('The parameter `output_onehot_size` is wrong! Expected `{0}`, got `{1}`.'.format(
@@ -939,7 +672,7 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative40(self):
+    def test_check_params_negative33(self):
         params = self.text_vae.__dict__
         params['output_onehot_size'] = -3
         true_err_msg = re.escape('The parameter `output_onehot_size` is wrong! Expected a positive value, '
@@ -947,40 +680,26 @@ class TestConv1dTextVAE(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative41(self):
+    def test_check_params_negative34(self):
         params = self.text_vae.__dict__
-        del params['lr']
-        true_err_msg = re.escape('The parameter `lr` is not defined!')
+        del params['max_dist_between_output_synonyms']
+        true_err_msg = re.escape('The parameter `max_dist_between_output_synonyms` is not defined!')
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative42(self):
+    def test_check_params_negative35(self):
         params = self.text_vae.__dict__
-        params['lr'] = '1.5'
-        true_err_msg = re.escape('The parameter `lr` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(10.5), type('1.5')))
+        params['max_dist_between_output_synonyms'] = '1.5'
+        true_err_msg = re.escape('The parameter `max_dist_between_output_synonyms` is wrong! Expected `{0}`, '
+                                 'got `{1}`.'.format(type(10.5), type('1.5')))
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
-    def test_check_params_negative43(self):
+    def test_check_params_negative36(self):
         params = self.text_vae.__dict__
-        params['lr'] = -0.1
-        true_err_msg = 'The parameter \`lr\` is wrong\! Expected a positive value\, but \-0\.\d+ is not positive\.'
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative44(self):
-        params = self.text_vae.__dict__
-        del params['use_attention']
-        true_err_msg = re.escape('The parameter `use_attention` is not defined!')
-        with self.assertRaisesRegex(ValueError, true_err_msg):
-            Conv1dTextVAE.check_params(**params)
-
-    def test_check_params_negative45(self):
-        params = self.text_vae.__dict__
-        params['use_attention'] = 0.5
-        true_err_msg = re.escape('The parameter `use_attention` is wrong! Expected `{0}`, got `{1}`.'.format(
-            type(True), type(0.5)))
+        params['max_dist_between_output_synonyms'] = -0.1
+        true_err_msg = 'The parameter \`max_dist_between_output_synonyms\` is wrong\! Expected a non-negative ' \
+                       'value\, but \-\d+\.\d+ is negative\.'
         with self.assertRaisesRegex(ValueError, true_err_msg):
             Conv1dTextVAE.check_params(**params)
 
@@ -1188,13 +907,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1205,11 +922,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
-        self.assertTrue(hasattr(res, 'generator_encoder_'))
-        self.assertTrue(hasattr(res, 'generator_decoder_'))
-        self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertTrue(hasattr(res, 'target_char_index_'))
-        self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
 
     def test_fit_positive02(self):
         self.text_vae.verbose = 2
@@ -1223,13 +935,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1240,11 +950,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
-        self.assertTrue(hasattr(res, 'generator_encoder_'))
-        self.assertTrue(hasattr(res, 'generator_decoder_'))
-        self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertTrue(hasattr(res, 'target_char_index_'))
-        self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
 
     def test_fit_positive03(self):
         self.text_vae.verbose = 2
@@ -1262,13 +967,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1279,11 +982,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
-        self.assertTrue(hasattr(res, 'generator_encoder_'))
-        self.assertTrue(hasattr(res, 'generator_decoder_'))
-        self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertTrue(hasattr(res, 'target_char_index_'))
-        self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
 
     def test_fit_positive04(self):
         self.text_vae.verbose = 2
@@ -1301,13 +999,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1318,11 +1014,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
-        self.assertTrue(hasattr(res, 'generator_encoder_'))
-        self.assertTrue(hasattr(res, 'generator_decoder_'))
-        self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertTrue(hasattr(res, 'target_char_index_'))
-        self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
 
     def test_fit_negative01(self):
         true_err_msg = re.escape('Length of `X` does not equal to length of `y`! {0} != {1}.'.format(
@@ -1402,11 +1093,12 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.text_vae.batch_size = batch_size
         self.text_vae.max_epochs *= 2
         res = self.text_vae.fit_predict(self.input_texts + self.input_texts, self.target_texts + self.target_texts)
-        self.assertIsInstance(res, list)
-        self.assertEqual(2 * len(self.input_texts), len(res))
-        for idx in range(len(res)):
-            self.assertIsInstance(res[idx], str)
-            self.assertGreater(len(res[idx].strip()), 0)
+        self.assertIsInstance(res, np.ndarray)
+        self.assertEqual(res.shape, (2 * len(self.input_texts), self.text_vae.output_text_size_,
+                                     self.text_vae.output_vector_size_))
+        for sample_idx in range(res.shape[0]):
+            for time_idx in range(res.shape[1]):
+                self.assertAlmostEqual(np.linalg.norm(res[sample_idx][time_idx]), 1.0, places=4)
 
     def test_predict_negative01(self):
         with self.assertRaises(NotFittedError):
@@ -1441,13 +1133,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1458,27 +1148,20 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertFalse(hasattr(res, 'output_vector_size_'))
         self.assertFalse(hasattr(res, 'vae_encoder_'))
         self.assertFalse(hasattr(res, 'vae_decoder_'))
-        self.assertFalse(hasattr(res, 'generator_encoder_'))
-        self.assertFalse(hasattr(res, 'generator_decoder_'))
-        self.assertFalse(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertFalse(hasattr(res, 'target_char_index_'))
-        self.assertFalse(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertIsNone(res.input_embeddings)
         self.assertIsNone(res.output_embeddings)
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
-        self.assertEqual(res.use_attention, self.text_vae.use_attention)
         self.assertEqual(res.use_batch_norm, self.text_vae.use_batch_norm)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)
-        self.assertEqual(res.n_recurrent_units, self.text_vae.n_recurrent_units)
+        self.assertAlmostEqual(res.max_dist_between_output_synonyms, self.text_vae.max_dist_between_output_synonyms)
         self.assertEqual(res.warm_start, self.text_vae.warm_start)
         self.assertEqual(res.verbose, self.text_vae.verbose)
         self.assertEqual(res.input_text_size, self.text_vae.input_text_size)
         self.assertEqual(res.output_text_size, self.text_vae.output_text_size)
         self.assertEqual(res.validation_fraction, self.text_vae.validation_fraction)
-        self.assertEqual(res.lr, self.text_vae.lr)
 
     def test_serialize_fitted(self):
         self.text_vae.fit(self.input_texts, self.target_texts)
@@ -1494,13 +1177,11 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_embeddings'))
         self.assertTrue(hasattr(res, 'batch_size'))
         self.assertTrue(hasattr(res, 'max_epochs'))
-        self.assertTrue(hasattr(res, 'lr'))
         self.assertTrue(hasattr(res, 'latent_dim'))
-        self.assertTrue(hasattr(res, 'n_recurrent_units'))
+        self.assertTrue(hasattr(res, 'max_dist_between_output_synonyms'))
         self.assertTrue(hasattr(res, 'use_batch_norm'))
         self.assertTrue(hasattr(res, 'warm_start'))
         self.assertTrue(hasattr(res, 'verbose'))
-        self.assertTrue(hasattr(res, 'use_attention'))
         self.assertTrue(hasattr(res, 'input_text_size'))
         self.assertTrue(hasattr(res, 'output_text_size'))
         self.assertTrue(hasattr(res, 'validation_fraction'))
@@ -1511,11 +1192,6 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertTrue(hasattr(res, 'output_vector_size_'))
         self.assertTrue(hasattr(res, 'vae_encoder_'))
         self.assertTrue(hasattr(res, 'vae_decoder_'))
-        self.assertTrue(hasattr(res, 'generator_encoder_'))
-        self.assertTrue(hasattr(res, 'generator_decoder_'))
-        self.assertTrue(hasattr(res, 'output_text_size_in_characters_'))
-        self.assertTrue(hasattr(res, 'target_char_index_'))
-        self.assertTrue(hasattr(res, 'reverse_target_char_index_'))
         self.assertEqual(res.n_filters, self.text_vae.n_filters)
         self.assertEqual(res.kernel_size, self.text_vae.kernel_size)
         self.assertIsNone(res.input_embeddings)
@@ -1523,15 +1199,13 @@ class TestConv1dTextVAE(unittest.TestCase):
         self.assertEqual(res.batch_size, self.text_vae.batch_size)
         self.assertEqual(res.max_epochs, self.text_vae.max_epochs)
         self.assertEqual(res.latent_dim, self.text_vae.latent_dim)
-        self.assertEqual(res.n_recurrent_units, self.text_vae.n_recurrent_units)
+        self.assertAlmostEqual(res.max_dist_between_output_synonyms, self.text_vae.max_dist_between_output_synonyms)
         self.assertEqual(res.warm_start, self.text_vae.warm_start)
         self.assertEqual(res.verbose, self.text_vae.verbose)
-        self.assertEqual(res.use_attention, self.text_vae.use_attention)
         self.assertEqual(res.use_batch_norm, self.text_vae.use_batch_norm)
         self.assertEqual(res.input_text_size, self.text_vae.input_text_size)
         self.assertEqual(res.output_text_size, self.text_vae.output_text_size)
         self.assertEqual(res.validation_fraction, self.text_vae.validation_fraction)
-        self.assertEqual(res.lr, self.text_vae.lr)
         res.input_embeddings = self.text_vae.input_embeddings
         res.output_embeddings = self.text_vae.output_embeddings
         X1 = self.text_vae.transform(self.input_texts)
