@@ -304,20 +304,16 @@ def main():
     print('')
 
     en_fasttext_model = load_english_fasttext()
+    ru_fasttext_model = load_russian_fasttext()
     if (model_name is not None) and os.path.isfile(model_name):
         with open(model_name, 'rb') as fp:
-            sentence_reconstructor, vae = pickle.load(fp)
+            vae = pickle.load(fp)
         assert isinstance(vae, Conv1dTextVAE), \
             'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
         vae.input_embeddings = en_fasttext_model
-        assert isinstance(sentence_reconstructor, SentenceReconstructor), \
-            'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
         print('')
         print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
-        ru_fasttext_model = load_russian_fasttext()
-        sentence_reconstructor = SentenceReconstructor(fasttext_vectors=ru_fasttext_model)
-        sentence_reconstructor.fit(target_texts_for_training + target_texts_for_testing)
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
                             n_filters=(1024,), kernel_size=3, latent_dim=300, max_dist_between_output_synonyms=0.3,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
@@ -327,8 +323,11 @@ def main():
         print('Training has been successfully finished.')
         if model_name is not None:
             with open(model_name, 'wb') as fp:
-                pickle.dump((sentence_reconstructor, vae), fp)
+                pickle.dump(vae, fp)
             print('Model has been successfully saved into file "{0}".'.format(model_name))
+    sentence_reconstructor = SentenceReconstructor(fasttext_vectors=ru_fasttext_model)
+    sentence_reconstructor.fit(target_texts_for_testing)
+    print('Sentence reconstructor has been prepared.')
     start_time = time.time()
     predicted_texts = [' '.join(it) for it in sentence_reconstructor.transform(vae.predict(input_texts_for_testing))]
     end_time = time.time()
