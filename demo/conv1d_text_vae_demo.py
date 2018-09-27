@@ -14,16 +14,24 @@ import random
 import numpy as np
 
 try:
-    from conv1d_text_vae import Conv1dTextVAE, DefaultTokenizer
+    from conv1d_text_vae.conv1d_text_vae import Conv1dTextVAE
+    from conv1d_text_vae.tokenizer import DefaultTokenizer
 except:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    from conv1d_text_vae import Conv1dTextVAE, DefaultTokenizer
+    from conv1d_text_vae.conv1d_text_vae import Conv1dTextVAE
+    from conv1d_text_vae.tokenizer import DefaultTokenizer
 
 try:
     from conv1d_text_vae.fasttext_loading import load_russian_fasttext, load_english_fasttext
 except:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from conv1d_text_vae.fasttext_loading import load_russian_fasttext, load_english_fasttext
+
+try:
+    from conv1d_text_vae.sentence_reconstructor import SentenceReconstructor
+except:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from conv1d_text_vae.sentence_reconstructor import SentenceReconstructor
 
 
 def load_text_pairs(file_name):
@@ -298,27 +306,31 @@ def main():
     en_fasttext_model = load_english_fasttext()
     if (model_name is not None) and os.path.isfile(model_name):
         with open(model_name, 'rb') as fp:
-            vae = pickle.load(fp)
+            sentence_reconstructor, vae = pickle.load(fp)
         assert isinstance(vae, Conv1dTextVAE), \
             'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
-        print('')
         vae.input_embeddings = en_fasttext_model
+        assert isinstance(sentence_reconstructor, SentenceReconstructor), \
+            'A sequence-to-sequence neural model cannot be loaded from file "{0}".'.format(model_name)
+        print('')
         print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
         ru_fasttext_model = load_russian_fasttext()
-        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model, lr=1e-3,
-                            n_filters=(1024, 2048), kernel_size=3, latent_dim=700, n_recurrent_units=1024,
+        sentence_reconstructor = SentenceReconstructor(fasttext_vectors=ru_fasttext_model)
+        sentence_reconstructor.fit(target_texts_for_training + target_texts_for_testing)
+        vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
+                            n_filters=(1024,), kernel_size=3, latent_dim=300, max_dist_between_output_synonyms=0.3,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
-                            output_onehot_size=target_onehot_size, use_attention=True, use_batch_norm=False)
+                            output_onehot_size=target_onehot_size, use_batch_norm=False)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
         print('Training has been successfully finished.')
         if model_name is not None:
             with open(model_name, 'wb') as fp:
-                pickle.dump(vae, fp)
+                pickle.dump((sentence_reconstructor, vae), fp)
             print('Model has been successfully saved into file "{0}".'.format(model_name))
     start_time = time.time()
-    predicted_texts = vae.predict(input_texts_for_testing)
+    predicted_texts = [' '.join(it) for it in sentence_reconstructor.transform(vae.predict(input_texts_for_testing))]
     end_time = time.time()
     sentence_correct, word_correct, character_correct = estimate(predicted_texts, target_texts_for_testing)
     print('')

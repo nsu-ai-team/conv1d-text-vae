@@ -10,7 +10,8 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 from gensim.models.keyedvectors import FastTextKeyedVectors
 
-from conv1d_text_vae.conv1d_text_vae import DefaultTokenizer, Conv1dTextVAE, SequenceForVAE
+from conv1d_text_vae.conv1d_text_vae import Conv1dTextVAE, SequenceForVAE
+from conv1d_text_vae.tokenizer import DefaultTokenizer
 from conv1d_text_vae.fasttext_loading import load_russian_fasttext_rusvectores
 
 
