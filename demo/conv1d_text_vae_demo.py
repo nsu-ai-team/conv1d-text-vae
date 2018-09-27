@@ -315,7 +315,7 @@ def main():
         print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
-                            n_filters=(1024,), kernel_size=3, latent_dim=300, max_dist_between_output_synonyms=0.3,
+                            n_filters=(1024, 2048), kernel_size=3, latent_dim=300, max_dist_between_output_synonyms=0.3,
                             max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
                             output_onehot_size=target_onehot_size, use_batch_norm=False)
         vae.fit(input_texts_for_training, target_texts_for_training)
