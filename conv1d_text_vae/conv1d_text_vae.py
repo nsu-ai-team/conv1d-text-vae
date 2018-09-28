@@ -178,7 +178,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         tmp_weights_name = self.get_temp_name()
         try:
             callbacks.append(
-                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True, verbose=(1 if self.verbose else 0))
+                ModelCheckpoint(filepath=tmp_weights_name, save_best_only=True, save_weights_only=True,
+                                verbose=(1 if self.verbose else 0))
             )
             if self.verbose:
                 print('')
@@ -712,12 +713,12 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
         data_part_counter = 0
         start_time = time.time()
         for sample_idx in range(word_vectors.shape[0]):
-            neighbours, distances = word_vec_index.get_nns_by_item(
+            neighbours, similarities = word_vec_index.get_nns_by_item(
                 sample_idx, n_max_neighbours, search_k=-1,
                 include_distances=True
             )
             for neighbour_idx in range(n_max_neighbours):
-                all_data[cell_idx] = distances[neighbour_idx]
+                all_data[cell_idx] = 1.0 - similarities[neighbour_idx]
                 all_rows[cell_idx] = sample_idx
                 all_cols[cell_idx] = neighbours[neighbour_idx]
                 cell_idx += 1

@@ -59,20 +59,22 @@ class SentenceReconstructor:
                              'got a {0}-D one.'.format(matrices_of_sentences.ndim))
         reconstructed_sentences = []
         for sample_idx in range(matrices_of_sentences.shape[0]):
-            new_sentence = []
+            variants_of_new_sentence = []
             for time_idx in range(matrices_of_sentences.shape[1]):
-                indices_of_words, distances = self.annoy_index_.get_nns_by_vector(
+                indices_of_words, similarities = self.annoy_index_.get_nns_by_vector(
                     matrices_of_sentences[sample_idx][time_idx], self.n_variants, include_distances=True)
+                print('indices_of_words', indices_of_words)
+                print('similarities', similarities)
                 if self.vocabulary_[indices_of_words[0]] == '':
                     break
-                new_sentence.append(
-                    list(filter(
+                variants_of_new_sentence.append(
+                    tuple(filter(
                         lambda it1: it1[0] != '',
-                        [(self.vocabulary_[indices_of_words[idx]], max(min(distances[idx], 1.0), 0.0))
+                        [(self.vocabulary_[indices_of_words[idx]], max(min(similarities[idx], 1.0), 0.0))
                          for idx in range(self.n_variants)]
                     ))
                 )
-            reconstructed_sentences.append(self.beam_search_decoder(new_sentence, self.n_variants))
+            reconstructed_sentences.append(self.beam_search_decoder(variants_of_new_sentence, self.n_variants))
         return tuple(reconstructed_sentences)
 
     def __getstate__(self):
@@ -117,16 +119,16 @@ class SentenceReconstructor:
             self.vocabulary_ = state['vocabulary_']
 
     @staticmethod
-    def beam_search_decoder(data, k):
+    def beam_search_decoder(variants_of_sentence, n_best):
         EPS = 1e-9
-        sequences = [[list(), 1.0]]
-        for row in data:
+        sequences = [[list(), 0.0]]
+        for variants_of_word in variants_of_sentence:
             all_candidates = list()
             for idx1 in range(len(sequences)):
                 seq, score = sequences[idx1]
-                for idx2 in range(len(row)):
-                    candidate = [seq + [row[idx2][0]], score * math.log(row[idx2][1] + EPS)]
+                for idx2 in range(len(variants_of_word)):
+                    candidate = [seq + [variants_of_word[idx2][0]], score - math.log(variants_of_word[idx2][1] + EPS)]
                     all_candidates.append(candidate)
-            ordered = sorted(all_candidates, key=lambda tup: tup[1])
-            sequences = ordered[:k]
+            ordered = sorted(all_candidates, key=lambda it: it[1])
+            sequences = ordered[:n_best]
         return tuple([tuple(it[0]) for it in sequences])
