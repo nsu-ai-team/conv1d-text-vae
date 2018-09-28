@@ -234,9 +234,6 @@ def main():
                         help='The text file with parallel English-Russian corpus for evaluation (testing).')
     parser.add_argument('--iter', dest='max_epochs', type=int, required=False, default=50,
                         help='Maximal number of training epochs.')
-    parser.add_argument('--onehot', dest='onehot_size', type=int, required=False, default=None,
-                        help='Size of the target one-hot vector, i.e. target vocavulary size (target vocabulary will '
-                             'be quantized to this size).')
     parser.add_argument('--batch', dest='batch_size', type=int, required=False, default=128, help='Mini-batch size.')
     parser.add_argument('--verbose', dest='verbose', type=int, required=False, default=1, help='Verbose mode.')
     args = parser.parse_args()
@@ -263,11 +260,6 @@ def main():
                                'It must be a positive integer number.'.format(minibatch_size)
     verbose = args.verbose
     assert verbose in {0, 1, 2}, '{0} is wrong value of verbose mode! It must be a 0, 1 or 2.'.format(verbose)
-    target_onehot_size = args.onehot_size
-    if target_onehot_size is not None:
-        assert target_onehot_size > 0, 'Size of the target one-hot vector must be a positive value, but {0} is not ' \
-                                       'positive.'.format(target_onehot_size)
-
     n_chars_left = 0
     n_chars_right = 0
     input_texts_for_training, target_texts_for_training = shuffle_text_pairs(
@@ -315,9 +307,9 @@ def main():
         print('Model has been successfully loaded from file "{0}".'.format(model_name))
     else:
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
-                            n_filters=(1024, 2048), kernel_size=3, latent_dim=300, max_dist_between_output_synonyms=0.3,
-                            max_epochs=max_epochs, verbose=verbose, batch_size=minibatch_size,
-                            output_onehot_size=target_onehot_size, use_batch_norm=False)
+                            n_filters=(1024, 2048), kernel_size=3, latent_dim=300, max_epochs=max_epochs,
+                            verbose=verbose, batch_size=minibatch_size, output_onehot_size=50000,
+                            max_dist_between_output_synonyms=0.1, use_batch_norm=False)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
         print('Training has been successfully finished.')
