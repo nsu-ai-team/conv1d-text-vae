@@ -321,7 +321,8 @@ def main():
     sentence_reconstructor.fit(target_texts_for_testing)
     print('Sentence reconstructor has been prepared.')
     start_time = time.time()
-    predicted_texts = [' '.join(it) for it in sentence_reconstructor.transform(vae.predict(input_texts_for_testing))]
+    predicted_texts = [[' '.join(it2) for it2 in it1] for it1 in sentence_reconstructor.transform(
+        vae.predict(input_texts_for_testing))]
     end_time = time.time()
     sentence_correct, word_correct, character_correct = estimate(predicted_texts, target_texts_for_testing)
     print('')
