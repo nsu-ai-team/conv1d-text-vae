@@ -325,7 +325,7 @@ def main():
         sentence_reconstructor.fit(target_texts_for_testing)
     else:
         name_of_sentence_reconstructor = os.path.join(os.path.dirname(model_name),
-                                                      'reconstructor.' + os.path.basename(model_name))
+                                                      'reconstructor_for_' + os.path.basename(model_name))
         if os.path.isfile(name_of_sentence_reconstructor):
             with open(name_of_sentence_reconstructor, 'rb') as fp:
                 sentence_reconstructor = pickle.load(fp)
