@@ -308,8 +308,8 @@ def main():
     else:
         ru_fasttext_model = load_russian_fasttext()
         vae = Conv1dTextVAE(input_embeddings=en_fasttext_model, output_embeddings=ru_fasttext_model,
-                            n_filters=(1024, 2048), kernel_size=3, latent_dim=300, max_epochs=max_epochs,
-                            verbose=verbose, batch_size=minibatch_size, output_onehot_size=50000,
+                            n_filters=(256, 512), kernel_size=3, latent_dim=500, max_epochs=max_epochs,
+                            verbose=verbose, batch_size=minibatch_size, output_onehot_size=20000,
                             max_dist_between_output_synonyms=0.1, use_batch_norm=False)
         vae.fit(input_texts_for_training, target_texts_for_training)
         print('')
@@ -318,17 +318,24 @@ def main():
             with open(model_name, 'wb') as fp:
                 pickle.dump(vae, fp)
             print('Model has been successfully saved into file "{0}".'.format(model_name))
-    name_of_sentence_reconstructor = model_name + '.reconstructor'
-    if os.path.isfile(name_of_sentence_reconstructor):
-        with open(name_of_sentence_reconstructor, 'rb') as fp:
-            sentence_reconstructor = pickle.load(fp)
-    else:
+    if model_name is None:
         if ru_fasttext_model is None:
             ru_fasttext_model = load_english_fasttext()
         sentence_reconstructor = SentenceReconstructor(fasttext_vectors=ru_fasttext_model)
         sentence_reconstructor.fit(target_texts_for_testing)
-        with open(name_of_sentence_reconstructor, 'wb') as fp:
-            pickle.dump(sentence_reconstructor, fp)
+    else:
+        name_of_sentence_reconstructor = os.path.join(os.path.dirname(model_name),
+                                                      'reconstructor.' + os.path.basename(model_name))
+        if os.path.isfile(name_of_sentence_reconstructor):
+            with open(name_of_sentence_reconstructor, 'rb') as fp:
+                sentence_reconstructor = pickle.load(fp)
+        else:
+            if ru_fasttext_model is None:
+                ru_fasttext_model = load_english_fasttext()
+            sentence_reconstructor = SentenceReconstructor(fasttext_vectors=ru_fasttext_model)
+            sentence_reconstructor.fit(target_texts_for_testing)
+            with open(name_of_sentence_reconstructor, 'wb') as fp:
+                pickle.dump(sentence_reconstructor, fp)
     print('Sentence reconstructor has been prepared.')
     start_time = time.time()
     predicted_texts = [[' '.join(it2) for it2 in it1] for it1 in sentence_reconstructor.transform(

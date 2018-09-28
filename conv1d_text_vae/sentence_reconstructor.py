@@ -63,8 +63,6 @@ class SentenceReconstructor:
             for time_idx in range(matrices_of_sentences.shape[1]):
                 indices_of_words, similarities = self.annoy_index_.get_nns_by_vector(
                     matrices_of_sentences[sample_idx][time_idx], self.n_variants, include_distances=True)
-                print('indices_of_words', indices_of_words)
-                print('similarities', similarities)
                 if self.vocabulary_[indices_of_words[0]] == '':
                     break
                 variants_of_new_sentence.append(
