@@ -963,7 +963,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return xent_loss - kl_loss
 
-        def reconstruction_accuracy(y_true, y_pred):
+        def reconstr_acc(y_true, y_pred):
             y_pred_ = K.softmax(
                 (1.0 / tau) * K.dot(y_pred, weights_of_layer_for_reconstruction),
                 axis=-1
@@ -1049,8 +1049,7 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             weights_of_layer_for_reconstruction = None
         else:
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
-            vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss,
-                                           metrics=reconstruction_accuracy)
+            vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss, metrics=[reconstr_acc])
             if self.verbose:
                 print('')
                 print('ENCODER:')
