@@ -12,6 +12,7 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import Input
 from keras.layers import Conv1D, Conv2DTranspose, MaxPool1D, UpSampling1D, BatchNormalization, Dropout, Dense
 from keras.layers import Flatten, Reshape, Lambda, Cropping1D
+from keras.metrics import categorical_accuracy
 from keras.models import Model
 from keras.optimizers import Nadam
 from keras.utils import Sequence
@@ -962,6 +963,16 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             kl_loss = K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
             return xent_loss - kl_loss
 
+        def reconstruction_accuracy(y_true, y_pred):
+            y_pred_ = K.softmax(
+                (1.0 / tau) * K.dot(y_pred, weights_of_layer_for_reconstruction),
+                axis=-1
+            )
+            accuracy = categorical_accuracy(y_true, y_pred_)
+            mask = K.cast(K.any(K.not_equal(y_true, 0.0), axis=-1), dtype=K.dtype(accuracy))
+            accuracy = K.sum(accuracy, axis=-1) / K.sum(mask, axis=-1)
+            return accuracy
+
         def Conv1DTranspose(input_tensor, filters, kernel_size, strides=1, padding='same', activation='tanh',
                             name: str = "", trainable: bool = True):
             x = Lambda(lambda x: K.expand_dims(x, axis=2), name=name + '_deconv1d_part1')(input_tensor)
@@ -1038,7 +1049,8 @@ class Conv1dTextVAE(BaseEstimator, TransformerMixin, ClassifierMixin):
             weights_of_layer_for_reconstruction = None
         else:
             weights_of_layer_for_reconstruction = K.constant(output_vectors.transpose(), dtype='float32')
-            vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss)
+            vae_model_for_training.compile(optimizer=Nadam(clipnorm=10.0), loss=vae_loss,
+                                           metrics=reconstruction_accuracy)
             if self.verbose:
                 print('')
                 print('ENCODER:')
